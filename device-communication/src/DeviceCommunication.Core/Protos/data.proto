@@ -1,0 +1,247 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+syntax = "proto3";
+
+package device;
+
+import "nanopb.proto";
+import "common.proto";
+
+// --- Enums ---
+
+// Top-level commands for the Data category.
+// See SRS-102.0, Rev 0, for more details.
+enum DataCommandType {
+        DATA_COMMAND_UNSPECIFIED = 0;
+        MANAGE_DATA = 1;
+        CONFIGURE = 2;
+        // EventTriggerAlert (Device -> Server) handled in message type Main
+}
+
+// Operations available under the MANAGE_DATA command
+enum DataOperation {
+        DATA_OPERATION_UNSPECIFIED = 0;
+        START_CAPTURE = 1;         
+
+        DATA_READ = 10;            // Read available signal data
+        DATA_GET = 11;             // Get specific signal data based on dataset_id
+        DATA_DELETE = 12;          // Delete specific signal data based on dataset_id
+        DATA_GET_STORAGE_INFO = 13; // Get overview of data storage usage
+}
+
+// Status of the capture process associated with a dataset_id.
+// Used within SignalDataInfo.
+enum CaptureStatus {
+        CAPTURE_UNKNOWN = 0;          
+        CAPTURE_IN_PROGRESS = 1;      
+        CAPTURE_COMPLETE_SUCCESS = 2; 
+        CAPTURE_COMPLETE_ERROR = 3;   // Capture failed (e.g., storage full, general error, etc.)
+}
+
+// --- Message Types ---
+
+// Represents one chunk of multi-channel, time-series signal data
+message SignalDataChunk {
+        uint64 start_timestamp_ns = 1; // (PTP!) Precise timestamp (ns since epoch) of the first sample in this chunk
+        uint32 sample_rate_hz = 2; // Sampling rate used for this data, most likely fixed at 1kHz, so this field may be removed
+        uint32 num_channels = 3; 
+        repeated float pga_gain_settings = 4 [(nanopb).max_count = 4]; 
+        repeated sint32 raw_adc_values = 5 [(nanopb).max_count = 1024]; // Raw ADC counts (24-bit 2's complement, sign-extended into sint32)
+        uint32 sequence_number = 6; // Sequence number of this chunk within the dataset
+        uint32 chunk_crc32 = 7; // Optional
+}
+
+message SignalDataInfo {
+        uint32 dataset_id = 1; 
+        uint64 start_time_ns = 2;      
+        uint64 end_time_ns = 3;       
+        uint64 trigger_timestamp_ns = 4;
+        uint32 pre_trigger_duration_seconds = 5;
+        uint32 post_trigger_duration_seconds = 6;
+        uint32 sample_rate_hz = 7;
+        uint32 num_channels = 8;
+        uint32 approximate_size_kb = 9; 
+        CaptureStatus capture_status = 10; // Current status of this capture process
+}
+
+// Overview of the device's data storage capacity and usage
+message StorageInfo {
+        uint32 total_storage_kb = 1;    
+        uint32 used_storage_kb = 2;     
+        uint32 available_storage_kb = 3;
+        uint32 total_datasets = 4;      // Number of SignalDataInfo entries stored (25 max)
+        uint64 oldest_dataset_start_time_ns = 5; // Start time of the oldest stored dataset
+        uint64 newest_dataset_start_time_ns = 6; // Start time of the newest stored dataset
+}
+
+// --- Event Trigger Alert (Device -> Server) ---
+message EventTriggerAlert {
+        uint64 trigger_timestamp_ns = 1; 
+        uint32 triggering_channel_id = 2; 
+        sint32 triggering_raw_value = 3;  
+        float trigger_threshold_crossed = 4; 
+        string trigger_description = 5 [(nanopb).max_size = 64];
+}
+
+// Response (ACK) from Server -> Device for EventTriggerAlert
+message EventTriggerAlertResponse {
+        ResponseBase response_base = 1; 
+        bool acknowledge = 2;           
+}
+
+// Payload for START_CAPTURE operation request
+message StartCaptureRequest {
+        uint64 trigger_timestamp_ns = 1; // The trigger time server wants captured
+}
+// Payload for START_CAPTURE operation response
+message StartCaptureResponse {
+        ResponseBase response_base = 1; 
+        uint32 assigned_dataset_id = 2; // The ID the device will use for this capture
+        bool capture_initiated = 3;     
+        uint32 estimated_capture_time_seconds = 4; 
+}
+
+// Payload for DATA_READ operation request
+message ReadDataRequest {
+        uint64 start_time_filter_ns = 1;
+        uint64 end_time_filter_ns = 2;   
+        uint32 max_results = 4;
+        uint32 page_token = 5;
+}
+
+// Payload for DATA_READ operation response
+message ReadDataResponse {
+        ResponseBase response_base = 1;
+        repeated SignalDataInfo datasets = 2 [(nanopb).max_count = 10];
+        uint32 next_page_token = 3; // Token for next page request. 0 if last page.
+        uint32 total_matching_datasets = 4; // Total available datasets matching filter
+}
+
+// Payload for DATA_GET operation request
+message GetDataRequest {
+        uint32 dataset_id = 1;
+        uint32 start_chunk_sequence_number = 2; // For resuming downloads
+	    uint32 max_chunks_in_response = 3; // Hint for max chunks per response message
+}
+
+// Payload for DATA_GET operation response
+message GetDataResponse {
+        ResponseBase response_base = 1;
+        uint32 dataset_id = 2; 
+        repeated SignalDataChunk data_chunks = 3 [(nanopb).max_count = 5]; 
+        uint32 first_chunk_sequence_number_in_this_response = 4; // Sequence number of first chunk in this msg
+        uint32 total_chunks_in_dataset = 5; 
+}
+
+// Payload for DATA_DELETE operation request
+message DeleteDataRequest {
+        repeated uint32 dataset_ids = 1 [(nanopb).max_count = 10];
+        bool delete_all_datasets = 2; // Flag to delete all stored datasets
+        string confirmation_code = 3 [(nanopb).max_size = 17]; // Safety
+}
+
+// Payload for DATA_DELETE operation response.
+message DeleteDataResponse {
+        ResponseBase response_base = 1;
+        repeated uint32 deleted_dataset_ids = 2 [(nanopb).max_count = 10]; // IDs successfully deleted
+        uint32 not_deleted_count = 3; // Number of requested IDs not found or not deleted
+        uint32 freed_storage_kb = 4; // Optional
+}
+
+// Payload for DATA_GET_STORAGE_INFO operation request
+message GetStorageInfoRequest {
+        // Empty, no payload needed
+}
+
+// Payload for DATA_GET_STORAGE_INFO operation response
+message GetStorageInfoResponse {
+        ResponseBase response_base = 1;
+        StorageInfo storage_info = 2;
+}
+
+// Configuration for a single data acquisition channel.
+message ChannelConfig {
+        uint32 channel_id = 1;
+        bool enabled = 2;           
+        float initial_pga_gain = 3; 
+        float trigger_threshold_low = 4; // TODO: Raw (2s complement) or volts?
+        float trigger_threshold_high = 5; // TODO: Raw (2s complement) or volts?
+        bool report_event_on_threshold = 6; // Should crossing threshold generate EventTriggerAlert?
+}
+
+// Payload for CONFIGURE command request
+message ConfigureRequest {
+        uint32 sampling_rate_hz = 1; // Desired sampling rate, most likely fixed at 1kHz
+        repeated ChannelConfig channel_configs = 2 [(nanopb).max_count = 4];
+        uint32 total_storage_allocation_kb = 3;
+        bool clear_existing_datasets_on_config = 4; // Wipe stored data on reconfig?
+        uint32 max_concurrent_triggered_datasets = 5;
+        uint32 pre_trigger_duration_seconds = 6; // Default pre-trigger capture duration
+        uint32 post_trigger_duration_seconds = 7; // Default post-trigger capture duration
+        uint32 total_capture_duration_minutes = 8; // Default total capture window length, most likely = 5min
+}
+
+// Payload for CONFIGURE command response
+message ConfigureResponse {
+        ResponseBase response_base = 1;
+        repeated uint32 configured_channel_ids = 2 [(nanopb).max_count = 4]; // Channels successfully configured
+        uint32 actual_storage_allocation_kb = 3; // Actual storage allocated (may differ from request)
+}
+
+// Request wrapper for the MANAGE_DATA command type
+message ManageDataRequest {
+        DataOperation operation = 1;
+        oneof operation_payload {
+                StartCaptureRequest start_capture = 2;
+                ReadDataRequest read = 10;
+                GetDataRequest get = 11;
+                DeleteDataRequest delete = 12;
+                GetStorageInfoRequest get_storage_info = 13;
+        }
+}
+
+// Response wrapper for the MANAGE_DATA command type
+message ManageDataResponse {
+        DataOperation operation = 1; // Echoes
+        oneof operation_response_payload {
+                StartCaptureResponse start_capture = 2;
+                ReadDataResponse read = 10;
+                GetDataResponse get = 11;
+                DeleteDataResponse delete = 12;
+                GetStorageInfoResponse get_storage_info = 13;
+        }
+}
+
+// --- Data Wrappers (Used in message type Main) ---
+
+// Top-level request message for the Data category
+message DataRequest {
+        DataCommandType command_type = 1;
+        oneof command_payload {
+                ManageDataRequest manage_data = 2;
+                ConfigureRequest configure = 3;
+        }
+}
+
+// Top-level response message for the Data category
+message DataResponse {
+        DataCommandType command_type = 1; // Echoes
+        oneof command_response_payload {
+                ManageDataResponse manage_data = 2;
+                ConfigureResponse configure = 3;
+        }
+}

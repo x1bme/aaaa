@@ -1,0 +1,307 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+syntax = "proto3";
+
+package device;
+
+import "nanopb.proto";
+import "common.proto";
+
+// --- Enums ---
+
+// Top-level commands for the Device Management category.
+// See SRS-102.0, Rev 0, for more details.
+enum DeviceCommandType {
+        DEVICE_COMMAND_UNSPECIFIED = 0;
+        DEVICE_CONFIG = 1;   
+        DEVICE_CONTROL = 2;  
+        FACTORY_RESET = 3;  
+        SYNC_TIME = 4;      
+        // ErrorAlert (Device -> Server) handled in message type Main
+}
+
+enum PowerMode {
+        POWER_MODE_UNSPECIFIED = 0;
+        POWER_NORMAL = 1;
+        POWER_LOW = 2; // POWER_LOW = POWER_SAFE_MODE, so consider removing
+        POWER_SLEEP = 3;
+        POWER_SAFE_MODE = 4; 
+}
+
+// Actions available under the DEVICE_CONTROL command
+enum DeviceControlAction {
+        DEVICE_ACTION_UNSPECIFIED = 0;
+        DEVICE_ACTION_RESET = 1;          
+        DEVICE_ACTION_REBOOT = 2;         
+        DEVICE_ACTION_SET_POWER_MODE = 3; 
+        DEVICE_ACTION_SET_SAFE_MODE = 4;  
+}
+
+// Operations available under the DEVICE_CONFIG command
+enum DeviceConfigOperation {
+        CONFIG_OP_UNSPECIFIED = 0;
+        SET_ASSIGNED_NAME = 1;    // User friendly name, like a tag
+        GENERATE_CSR = 2;         // Request device generate keypair and Certificate Signing Request
+        UPDATE_CERTIFICATE = 3;   // Provide device with a new TLS client certificate
+        GET_CERTIFICATE_INFO = 4; 
+        SET_NETWORK_CONFIG = 5;   
+        GET_NETWORK_CONFIG = 6;   
+}
+
+// PTP synchronization states reported in SyncTimeResponse
+enum PtpSyncStatus {
+        PTP_STATUS_UNSPECIFIED = 0;
+        PTP_STATUS_INITIALIZING = 1; // Client started, not yet synced
+        PTP_STATUS_FAULTY = 2;       // Error state
+        PTP_STATUS_DISABLED = 3;     // PTP is not enabled/configured
+        PTP_STATUS_LISTENING = 4;    // Listening for PTP messages
+        PTP_STATUS_UNLOCKED = 5;     // Client active but not synchronized to master
+        PTP_STATUS_LOCKED = 6;       // Client synchronized within tolerance of 500 us
+}
+
+
+// --- Message Types ---
+
+// Payload for SET_ASSIGNED_NAME operation request
+message SetAssignedNamePayload {
+        string assigned_name = 1 [(nanopb).max_size = 32];
+}
+// Payload for SET_ASSIGNED_NAME operation response
+message SetAssignedNameResponse {
+        ResponseBase response_base = 1;
+        string device_id_echo = 2 [(nanopb).max_size = 37]; // Echoes for confirmation
+}
+
+// Payload for GENERATE_CSR operation request
+message GenerateCsrRequest {
+        // Add fields if specifics (key type, size, or subject) needed. Assume defaults for now.
+}
+// Payload for GENERATE_CSR operation response
+message GenerateCsrResponse {
+        ResponseBase response_base = 1;
+        bytes csr_der = 2 [(nanopb).max_size = 1024]; // CSR in binary DER format
+}
+
+// Payload for UPDATE_CERTIFICATE operation request
+message UpdateCertificateRequest {
+        bytes new_certificate_der = 1 [(nanopb).max_size = 2048]; // New certificate in DER format
+}
+// Payload for UPDATE_CERTIFICATE operation response
+message UpdateCertificateResponse {
+        ResponseBase response_base = 1; // Confirms storage success/failure
+}
+
+// Payload for GET_CERTIFICATE_INFO operation request
+message GetCertificateInfoRequest {
+        // Add identifier if multiple certs exist. Assume 1 for now.
+}
+// Structure containing details about a certificate
+message CertificateInfo {
+        bytes certificate_der = 1 [(nanopb).max_size = 2048]; // Certificate in DER format
+        string subject_name = 2 [(nanopb).max_size = 128]; // Subject Name
+        string issuer_name = 3 [(nanopb).max_size = 128]; // Issuer Name
+        uint64 valid_not_before_ms = 4; // Valid starting when?
+        uint64 valid_not_after_ms = 5; // Valid ended when?
+}
+// Payload for GET_CERTIFICATE_INFO operation response
+message GetCertificateInfoResponse {
+        ResponseBase response_base = 1;
+        CertificateInfo tls_client_cert_info = 2; // Make repeated CertificateInfo if multiple certs. Assume 1 for now.
+}
+
+// Structure defining network configuration settings
+message NetworkSettings {
+        bool use_dhcp = 1; // Decided against this, consider removing
+        string static_ip_address = 2 [(nanopb).max_size = 16];
+        string subnet_mask = 3 [(nanopb).max_size = 16];
+        string gateway = 4 [(nanopb).max_size = 16];
+        string primary_dns = 5 [(nanopb).max_size = 16]; // Optional
+        string secondary_dns = 6 [(nanopb).max_size = 16]; // Optional
+}
+
+// Payload for SET_NETWORK_CONFIG operation request
+message SetNetworkConfigRequest {
+        NetworkSettings settings = 1;
+        // Maybe when/if/how changes are applied (e.g., bool apply_after_reboot = 2;). Assume immediate attempt for now.
+}
+// Payload for SET_NETWORK_CONFIG operation response
+message SetNetworkConfigResponse {
+        ResponseBase response_base = 1; // Configured ok?
+}
+
+// Payload for GET_NETWORK_CONFIG operation request
+message GetNetworkConfigRequest {
+        // Empty, no payload needed
+}
+// Payload for GET_NETWORK_CONFIG operation response
+message GetNetworkConfigResponse {
+        ResponseBase response_base = 1;
+        NetworkSettings current_settings = 2;
+}
+
+// Request wrapper for the DEVICE_CONFIG command type
+message DeviceConfigRequest {
+        DeviceConfigOperation operation = 1;
+        oneof operation_payload {
+                SetAssignedNamePayload set_assigned_name = 2;
+                GenerateCsrRequest generate_csr = 3;
+                UpdateCertificateRequest update_certificate = 4;
+                GetCertificateInfoRequest get_certificate_info = 5;
+                SetNetworkConfigRequest set_network_config = 6;
+                GetNetworkConfigRequest get_network_config = 7;
+        }
+}
+
+// Response wrapper for the DEVICE_CONFIG command type
+message DeviceConfigResponse {
+        DeviceConfigOperation operation = 1; // Echoes
+        oneof operation_response_payload {
+                SetAssignedNameResponse set_assigned_name = 2;
+                GenerateCsrResponse generate_csr = 3;
+                UpdateCertificateResponse update_certificate = 4;
+                GetCertificateInfoResponse get_certificate_info = 5;
+                SetNetworkConfigResponse set_network_config = 6;
+                GetNetworkConfigResponse get_network_config = 7;
+        }
+}
+
+
+// --- Device Control Payloads / Responses / Wrappers ---
+// Payload for RESET action request
+message ResetPayload {
+        string reason = 1 [(nanopb).max_size = 32]; // Optional
+        uint32 delay_ms = 2; // Delay before reset
+}
+// Payload for REBOOT action request
+message RebootPayload {
+        bool force_immediate = 1;
+        uint32 delay_seconds = 2; // Delay before reboot
+}
+// Payload for SET_POWER_MODE action request
+message SetPowerModePayload {
+        PowerMode mode = 1;
+        uint32 duration_seconds = 2;
+}
+// Payload for SET_SAFE_MODE action request
+message SetSafeModePayload {
+        bool enable = 1;
+}
+// Payload for RESET action response
+message ResetResponsePayload {
+        bool reset_scheduled = 1;
+}
+// Payload for REBOOT action response
+message RebootResponsePayload {
+        bool reboot_scheduled = 1;
+}
+// Payload for SET_POWER_MODE action response
+message SetPowerModeResponsePayload {
+        PowerMode actual_mode_set = 1; // Mode actually entered
+}
+// Payload for SET_SAFE_MODE action response
+message SetSafeModeResponsePayload {
+        bool safe_mode_now_active = 1; // Current safe mode state
+}
+
+// Request wrapper for the DEVICE_CONTROL command type, selecting the action
+message DeviceControlRequest {
+        DeviceControlAction action = 1;
+        oneof action_payload {
+                ResetPayload reset = 2;
+                RebootPayload reboot = 3;
+                SetPowerModePayload set_power_mode = 4;
+                SetSafeModePayload set_safe_mode = 5;
+        }
+}
+
+// Response wrapper for the DEVICE_CONTROL command type
+message DeviceControlResponse {
+        DeviceControlAction action = 1; // Echoes
+        ResponseBase response_base = 2; 
+        oneof action_response_payload {
+                ResetResponsePayload reset = 3;
+                RebootResponsePayload reboot = 4;
+                SetPowerModeResponsePayload set_power_mode = 5;
+                SetSafeModeResponsePayload set_safe_mode = 6;
+        }
+}
+
+// --- ***Factory Reset*** ---
+// Payload for FACTORY_RESET command request
+message FactoryResetRequest {
+        string confirmation_code = 1 [(nanopb).max_size = 25]; // Safety
+        bool preserve_device_id = 2; // Keep device ID after reset?
+        bool preserve_network_config = 3; // Keep network settings?
+        bool preserve_calibration = 4; // Keep calibration data?
+        // Preserve anything else?
+}
+// Payload for FACTORY_RESET command response
+message FactoryResetResponse {
+        ResponseBase response_base = 1;
+        bool reset_scheduled = 2;
+        uint32 reset_delay_seconds = 3; // Delay before reset occurs
+}
+
+// --- Sync Time ---
+// Payload for SYNC_TIME command request
+message SyncTimeRequest {
+        uint64 server_timestamp_ms = 1; // Coarse timestamp, not the timestamp for data
+}
+// Payload for SYNC_TIME command response. ***Detailed PTP status here***.
+message SyncTimeResponse {
+        ResponseBase response_base = 1;
+        uint64 device_time_before_sync_ms = 2;
+        uint64 device_time_after_sync_ms = 3;
+        int64 offset_applied_ms = 4;
+
+        PtpSyncStatus ptp_status = 5;
+        int64 ptp_offset_nanoseconds = 6; // Current offset from PTP master (if locked). Expecting less than 500k.
+        string ptp_master_id = 7 [(nanopb).max_size = 32];
+}
+
+// --- Error Alert ---
+message ErrorAlert {
+        AlertInfo error_info = 1;
+}
+message ErrorAlertResponse {
+        ResponseBase response_base = 1;
+}
+
+
+// --- Device Wrappers (Used in message type Main) ---
+
+// Top-level request message for the Device category
+message DeviceRequest {
+        DeviceCommandType command_type = 1;
+        oneof command_payload {
+                DeviceConfigRequest config = 2;
+                DeviceControlRequest control = 3;
+                FactoryResetRequest factory_reset = 4;
+                SyncTimeRequest sync_time = 5;
+        }
+}
+
+// Top-level response message for the Device category
+message DeviceResponse {
+        DeviceCommandType command_type = 1; // Echoes
+        oneof command_response_payload {
+                DeviceConfigResponse config = 2;
+                DeviceControlResponse control = 3;
+                FactoryResetResponse factory_reset = 4;
+                SyncTimeResponse sync_time = 5;
+        }
+}

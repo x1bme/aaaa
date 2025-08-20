@@ -1,0 +1,146 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+syntax = "proto3";
+
+package device;
+
+import "nanopb.proto";
+import "common.proto";
+
+// --- Enums ---
+
+// Top-level commands for the Health category.
+// See SRS-102.0, Rev 0, for more details.
+enum HealthCommandType {
+        HEALTH_COMMAND_UNSPECIFIED = 0;
+        HEARTBEAT = 1;     
+        HEALTH_STATUS = 2; 
+}
+
+// Operations available under the HEALTH_STATUS command
+enum HealthStatusOperation {
+        HEALTH_OP_UNSPECIFIED = 0;
+        GET_CURRENT_STATUS = 1; 
+        GET_ERROR_LOG = 2;      
+        CLEAR_ERROR_LOG = 3;    
+}
+
+// --- Message Types ---
+
+message HeartbeatRequest {
+        // Empty, no payload needed
+}
+
+// Payload for HEARTBEAT command response
+message HeartbeatResponse {
+        ResponseBase response_base = 1;
+        uint64 device_timestamp_ms = 2; // Slightly redundant due to ts in header
+}
+
+// Payload for GET_CURRENT_STATUS operation request
+message GetCurrentStatusPayload {
+        // Removed for simplicity, add back if deemed useful later
+        // bool include_detailed_diagnostics = 1;
+}
+
+// Memory usage details
+message MemoryUsage {
+        uint32 total_ram_kb = 1;
+        uint32 used_ram_kb = 2;
+        uint32 min_ever_free_heap_bytes = 3;
+        uint32 total_internal_flash_kb = 4;
+        uint32 used_internal_flash_kb = 5;
+        uint32 total_external_flash_kb = 6; 
+        uint32 used_external_flash_kb = 7;  
+}
+
+// Payload for GET_CURRENT_STATUS operation response
+message GetCurrentStatusResponse {
+        ResponseBase response_base = 1;
+        bool is_operational = 2; // High-level status indicator
+        string system_state = 3 [(nanopb).max_size = 32]; // Application-specific state. Perhaps provided by HEALTH/STATUS Manager on DAU.
+        float temperature_celsius = 4;
+        MemoryUsage memory_usage = 6;
+        float cpu_usage_percent = 7;
+        uint64 uptime_seconds = 8;
+        repeated AlertInfo active_alerts = 9 [(nanopb).max_count = 10]; // Filesystem used for errors on DAU side, adjust max_count if needed
+        bool ptp_locked = 10; // Simple status: Is PTP synchronized? SyncTime in device.proto provides other PTP details
+        ResetReason last_reset_reason = 11; // Reason for the last device reboot
+}
+
+// Payload for GET_ERROR_LOG operation request
+message GetErrorLogPayload {
+	uint32 page_token = 1; // Opaque marker for pagination. Use 0 for first page.
+}
+
+// Payload for GET_ERROR_LOG operation response
+message GetErrorLogResponse {
+        ResponseBase response_base = 1;
+        repeated AlertInfo error_log_entries = 2 [(nanopb).max_count = 10]; // Adjust max_count if needed (originally 10, but after some discussions this could be increased to something a bit more sizeable).
+	    uint32 next_page_token = 3; // Token for next page request. 0 if this is the last page
+	    uint32 total_matching_entries = 4; // Total entries currently in the log
+}
+
+// Payload for CLEAR_ERROR_LOG operation request
+message ClearErrorLogPayload {
+        string confirmation_code = 1 [(nanopb).max_size = 17]; // Safety mechanism
+}
+
+// Payload for CLEAR_ERROR_LOG operation response
+message ClearErrorLogResponse {
+        ResponseBase response_base = 1; // Indicates success/failure of clear operation
+}
+
+// Request wrapper for the HEALTH_STATUS command type
+message HealthStatusRequest {
+        HealthStatusOperation operation = 1;
+        oneof operation_payload {
+                GetCurrentStatusPayload get_current = 2;
+                GetErrorLogPayload get_log = 3;
+                ClearErrorLogPayload clear_log = 4;
+        }
+}
+
+// Response wrapper for the HEALTH_STATUS command type
+message HealthStatusResponse {
+        HealthStatusOperation operation = 1; // Echoes
+        oneof operation_response_payload {
+                GetCurrentStatusResponse get_current = 2;
+                GetErrorLogResponse get_log = 3;
+                ClearErrorLogResponse clear_log = 4;
+        }
+}
+
+// --- Health Wrappers (Used in message type Main) ---
+
+// Top-level request message for the Health category
+message HealthRequest {
+        HealthCommandType command_type = 1;
+        oneof command_payload {
+                HeartbeatRequest heartbeat = 2;
+                HealthStatusRequest health_status = 3;
+        }
+}
+
+// Top-level response message for the Health category
+message HealthResponse {
+        HealthCommandType command_type = 1; // Echoes
+        oneof command_response_payload {
+                HeartbeatResponse heartbeat = 2;
+                HealthStatusResponse health_status = 3;
+        }
+}

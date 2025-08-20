@@ -1,0 +1,1 @@
+{"device_id": "test-device-001","operation": "FW_OP_GRPC_VERIFY","total_blocks_sent_for_verify":20,"full_image_crc32_for_verify":12345}

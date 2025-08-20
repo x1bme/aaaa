@@ -1,0 +1,136 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+syntax = "proto3";
+
+package device;
+
+import "nanopb.proto";
+
+// --- Enums ---
+
+// General status codes for operation responses.
+// See SRS-102.0, Rev 0, for more details.
+enum StatusCode {
+        STATUS_OK = 0;             
+        STATUS_ERROR = 1;          
+        STATUS_INVALID_PARAM = 2;  
+        STATUS_UNAUTHORIZED = 3;   
+        STATUS_UNAVAILABLE = 4;    
+        STATUS_BUSY = 5;           
+        STATUS_TIMEOUT = 6;        
+}
+
+// Severity levels for alerts and logged errors.
+// See SRS-102.0, Rev 0, for more details.
+enum SeverityLevel {
+        SEVERITY_INFO = 0;
+        SEVERITY_WARNING = 1;
+        SEVERITY_ERROR = 2;
+        SEVERITY_CRITICAL = 3;
+}
+
+// Specific error codes reported by the DAU.
+// See SRS-102.0, Rev 0, for more details.
+enum ErrorCode {
+        NO_ERROR = 0; // Default (SEVERITY_INFO)
+
+        // --- Health Errors (1xx) ---
+        HEALTH_TEMP_WARNING = 101;
+        HEALTH_TEMP_CRITICAL = 102;
+        HEALTH_MEM_WARN = 103;
+        HEALTH_MEM_ERROR = 104;
+        HEALTH_CPU_WARN = 105;
+        HEALTH_CPU_ERROR = 106;
+
+        // --- Firmware Errors (2xx) ---
+        FW_UPDATE_INFO_INITIATED = 201;
+        FW_UPDATE_VERIFY_FAILED = 202;
+        FW_UPDATE_STORAGE_ERROR = 203;
+        FW_CORRUPTION_DETECTED = 204;
+        FW_UPDATE_INCOMPLETE = 205;
+        FW_UPDATE_INFO_COMPLETED = 206;
+
+        // --- Data Errors (3xx) ---
+        DATA_BUFFER_NEAR_CAPACITY = 301;
+        DATA_BUFFER_OVERWRITE = 302;
+        DATA_QUALITY_DEGRADED = 303;
+        DATA_TRANSMISSION_FAILURE = 304;
+        DATA_CONFIG_UPDATED = 305; // Info that config changed
+
+        // --- Calibration Errors (4xx) ---
+        CAL_PARAM_OUT_OF_RANGE = 401;
+        CAL_PROCEDURE_FAILED = 402;
+        CAL_INFO_COMPLETED = 403;
+        CAL_EXPIRY_WARNING = 404;
+
+        // --- Device/System Errors (5xx) ---
+        DEVICE_INFO_INITIALIZED = 501;
+        DEVICE_INFO_RESET = 502;
+        DEVICE_ERR_UNEXPECTED_RESET = 503;
+        DEVICE_ERR_SECURE_BOOT_FAILED = 504;
+        DEVICE_ERR_COMPONENT_FAILURE = 505;
+        DEVICE_WARN_CLOCK_SYNC = 506; // PTP sync lost or unavailable. Perhaps a critical error if sync lost during data capture.
+        DEVICE_FAULT_HARDWARE = 507;
+        DEVICE_FAULT_STORAGE_LIMIT = 508;
+        DEVICE_WARN_COMM_TIMEOUT = 509;
+        DEVICE_ERR_COMM_LINK_FAILURE = 510;
+        DEVICE_WARN_INVALID_COMMAND = 511;
+        DEVICE_ERR_AUTH_FAILURE = 512;
+        DEVICE_INFO_CONN_ESTABLISHED = 513;
+        DEVICE_INFO_CONN_TERMINATED = 514;
+}
+
+// Reasons for the last device reset event
+enum ResetReason {
+        RESET_REASON_UNSPECIFIED = 0; // Reason unknown or not recorded
+        RESET_REASON_POWER_ON = 1;    
+        RESET_REASON_SOFTWARE = 2;    
+        RESET_REASON_BROWN_OUT = 3;   
+        RESET_REASON_EXTERNAL_PIN = 4; 
+        RESET_REASON_FAULT = 5;       
+}
+
+// --- Common Messages ---
+
+// Header included in every Main message
+message Header {
+        // Unique identifier for the device.
+        // TODO: Decide final type (string/bytes).
+        string device_id = 1 [(nanopb).max_size = 37];
+
+        // Sequence number for correlating requests/responses/ACKs.
+        // Sender increments for new requests/alerts. Receiver echoes in response/ACK.
+        uint32 sequence_number = 2;
+
+        // Timestamp when the message was originated by the sender.
+        // **NOTE**: This is NOT the PTP time, so coarseness in resolution and time deviation (hundreds of ms) ok.
+        uint64 timestamp_ms = 3;
+}
+
+// Basic response fields included in many specific operation responses
+message ResponseBase {
+        StatusCode status = 1; 
+        string message = 2 [(nanopb).max_size = 64]; // Typically empty, may remove this completely
+}
+
+// Structure for reporting an alert or logged error condition
+message AlertInfo {
+        ErrorCode code = 1;
+        SeverityLevel severity = 2;
+        string description = 3 [(nanopb).max_size = 64]; // Optional
+        uint64 timestamp_ms = 4;  // When the error occurred
+}

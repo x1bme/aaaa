@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+option csharp_namespace = "DeviceCommunication.Grpc";
+
+package device.communication;
+
+import "Protos/device_messages.proto";
+
+service DeviceCommunicationService {
+  // Establishes connection with a device
+  rpc ConnectDevice (ConnectDeviceRequest) returns (ConnectDeviceResponse);
+  
+  // Sends data to a device
+  rpc SendToDevice (SendToDeviceRequest) returns (SendToDeviceResponse);
+  
+  // Receives data from a device
+  rpc ReceiveFromDevice (ReceiveFromDeviceRequest) returns (ReceiveFromDeviceResponse);
+  
+  // For testing connection status
+  rpc GetDeviceStatus (DeviceStatusRequest) returns (DeviceStatusResponse);
+
+  // Streaming signal (traces) data
+  rpc StreamSignalData (stream SignalData) returns (SignalDataResponse);
+}
+
+message ConnectDeviceRequest {
+  string device_id = 1;
+  string connection_params = 2;  // JSON string of connection parameters
+}
+
+message ConnectDeviceResponse {
+  bool success = 1;
+  string message = 2;
+  string connection_id = 3;
+}
+
+message SendToDeviceRequest {
+  string device_id = 1;
+  bytes data = 2;  // Raw device protocol data
+}
+
+message SendToDeviceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ReceiveFromDeviceRequest {
+  string device_id = 1;
+}
+
+message ReceiveFromDeviceResponse {
+  bool success = 1;
+  string message = 2;
+  bytes data = 3;  // Raw device protocol data
+}
+
+message DeviceStatusRequest {
+  string device_id = 1;
+}
+
+message DeviceStatusResponse {
+  enum Status {
+    UNKNOWN = 0;
+    CONNECTED = 1;
+    DISCONNECTED = 2;
+    ERROR = 3;
+  }
+  Status status = 1;
+  string message = 2;
+}

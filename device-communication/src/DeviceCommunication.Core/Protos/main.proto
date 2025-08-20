@@ -1,0 +1,78 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+// -----------------------------------------------------------------------------
+// MAIN COMMUNICATION STRUCTURE (Top-Level Message Structure)
+// -----------------------------------------------------------------------------
+// This file defines the top-level message structure.
+// ALL communication messages sent between the server and the device over the
+// TCP/TLS connection MUST be wrapped within this structure.
+// It contains a standard Header and a 'oneof' payload holding the specific
+// request, response, or alert message. 
+// -----------------------------------------------------------------------------
+
+syntax = "proto3";
+
+package device;
+
+import "common.proto";
+import "health.proto";
+import "firmware.proto";
+import "data.proto";
+import "calibration.proto";
+import "device.proto";
+
+// The single message type transmitted over the wire.
+// Calling it Main could lead to some naming issues in 
+// application code since application code usually 
+// references a main/Main procedure, so this may be changed to 
+// MainMessage or Envelope later to avoid that
+// issue. Right now, I'm just going to keep it as Main.
+message Main {
+        // Standard header present in every message.
+        Header header = 1;
+
+        // ***Helpful Note***
+        // All requests are initiated by the Server, except for EventTriggerAlert and ErrorAlert, which
+        // are initiated by the Device, as shown below.
+
+        // Contains exactly one of the possible message payloads
+        oneof payload {
+                // --- Health Category (Fields 10-19) ---
+                HealthRequest health_request = 10;       // Server -> Device
+                HealthResponse health_response = 11;     // Device -> Server
+
+                // --- Firmware Category (Fields 20-29) ---
+                FirmwareRequest firmware_request = 20;   // Server -> Device
+                FirmwareResponse firmware_response = 21; // Device -> Server
+
+                // --- Data Category (Fields 30-39) ---
+                DataRequest data_request = 30;                     // Server -> Device
+                DataResponse data_response = 31;                   // Device -> Server
+                EventTriggerAlert event_trigger_alert = 32;        // Device -> Server (***Alert***)
+                EventTriggerAlertResponse event_trigger_alert_response = 33; // Server -> Device (Alert ACK)
+
+                // --- Calibration Category (Fields 40-49) ---
+                CalibrationRequest calibration_request = 40;       // Server -> Device
+                CalibrationResponse calibration_response = 41;     // Device -> Server
+
+                // --- Device Management Category (Fields 50-59) ---
+                DeviceRequest device_request = 50;                 // Server -> Device
+                DeviceResponse device_response = 51;               // Device -> Server
+                ErrorAlert error_alert = 52;                       // Device -> Server (***Alert***)
+                ErrorAlertResponse error_alert_response = 53;       // Server -> Device (Alert Ack)
+        }
+}

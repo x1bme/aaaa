@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.59.0" />
+    <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.59.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeviceProxy.Core\DeviceProxy.Core.csproj" />
+    <ProjectReference Include="..\DeviceProxy.Infrastructure\DeviceProxy.Infrastructure.csproj" />
+    <ProjectReference Include="..\DeviceProxy.Grpc\DeviceProxy.Grpc.csproj" />
+  </ItemGroup>
+
+</Project>

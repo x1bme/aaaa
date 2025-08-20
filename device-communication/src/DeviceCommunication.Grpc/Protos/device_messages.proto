@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option csharp_namespace = "DeviceCommunication.Grpc";
+
+package device.communication;
+
+enum MessageType {
+  UNKNOWN = 0;
+  PROXY_REQUEST = 1;
+  SIGNAL_DATA = 2;
+  HEARTBEAT = 3;
+  CALIBRATION_REQUEST = 4;
+}
+
+message SignalData {
+  string device_id = 1;
+  int64 timestamp = 2; 
+  repeated double values = 3;
+  string channel_id = 4; 
+  string sample_rate = 5; 
+}
+
+message SignalDataResponse {
+  string device_id = 1;
+  bool success = 2;
+  string message = 3;
+  int64 timestamp = 4;
+  int64 samples_received = 5;
+}
+
+message DeviceMessage {
+  string device_id = 1;
+  MessageType type = 2;
+  bytes payload = 3;
+  int64 timestamp = 4;
+}

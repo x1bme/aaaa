@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option csharp_namespace = "DeviceProxy.Grpc";
+
+package device.proxy;
+
+service DeviceProxyService {
+  // Send a message to another DAU
+  rpc RelayMessage (RelayMessageRequest) returns (RelayMessageResponse);
+  
+  // Stream for receiving messages intended for a specific DAU
+  rpc SubscribeToMessages (SubscribeRequest) returns (stream MessageDelivery);
+}
+
+message RelayMessageRequest {
+  string source_dau_id = 1;      // ID of the sending DAU
+  string target_dau_id = 2;      // ID of the intended recipient DAU
+  bytes message_data = 3;        // The actual message payload
+  string message_id = 4;         // Unique message identifier
+}
+
+message RelayMessageResponse {
+  bool success = 1;
+  string message = 2;
+  string message_id = 3;         // Echo back the message ID if successful
+}
+
+message SubscribeRequest {
+  string dau_id = 1;            // DAU that wants to receive messages
+}
+
+message MessageDelivery {
+  string source_dau_id = 1;     // Who sent the message
+  bytes message_data = 2;       // The actual message payload
+  string message_id = 3;        // Unique message identifier
+}

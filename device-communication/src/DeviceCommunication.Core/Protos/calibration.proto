@@ -1,0 +1,131 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+syntax = "proto3";
+
+package device;
+
+import "nanopb.proto";
+import "common.proto";
+
+// --- Enums ---
+
+// Top-level command for the Calibration category.
+// See SRS-102.0, Rev 0, for more details.
+enum CalibrationCommandType {
+        CALIBRATION_COMMAND_UNSPECIFIED = 0;
+        MANAGE_CALIBRATION = 1;
+}
+
+// Operations available under the MANAGE_CALIBRATION command
+enum CalibrationOperation {
+        CALIBRATION_OPERATION_UNSPECIFIED = 0;
+        READ_PARAMS = 1;      
+        START_PROCEDURE = 2;  
+        GET_STATUS = 3;       
+
+}
+
+// --- Message Types ---
+
+// Contains the calculated calibration parameters for a single ADC channel
+message AdcChannelCalibrationParams {
+        uint32 channel_id = 1;
+
+        float offset = 2; // Offset, perhaps just numerical values instead of float and offset
+
+        float gain = 3; // Gain, perhaps just numerical values ins tead of float and offset
+
+        uint64 last_updated_ms = 4; // Timestamp of when these parameters were last calculated
+
+        uint64 calibration_expires_ms = 5; // Timestamp for when these parameters expire
+
+        float temperature_at_cal_celsius = 6; // Maybe
+}
+
+// Payload for READ_PARAMS operation request
+message ReadCalibrationParamsRequest {
+        repeated uint32 channel_ids = 1 [(nanopb).max_count = 4]; // Return all channels if empty (channel_ids = [])
+}
+
+// Payload for READ_PARAMS operation response
+message ReadCalibrationParamsResponse {
+        ResponseBase response_base = 1;
+        repeated AdcChannelCalibrationParams parameters = 2 [(nanopb).max_count = 4];
+}
+
+// Payload for START_PROCEDURE operation request
+message StartCalibrationProcedureRequest {
+        repeated uint32 channel_ids = 1 [(nanopb).max_count = 4]; // Calibrate all channels if empty (channel_ids=[])
+        bool force_calibration = 2; // If true, run even if not expired
+}
+
+// Payload for START_PROCEDURE operation response
+message StartCalibrationProcedureResponse {
+        ResponseBase response_base = 1;
+        bool procedure_started = 2; // Confirmation it started
+        uint32 estimated_duration_seconds = 3;
+}
+
+// Payload for GET_STATUS operation request
+message GetCalibrationStatusRequest {
+        // No payload needed if only one calibration runs at a time otherwise add channel_id(s)
+}
+
+// Payload for GET_STATUS operation response
+message GetCalibrationStatusResponse {
+        ResponseBase response_base = 1;
+        bool is_calibrating = 2;
+        uint32 progress_percent = 3;
+        uint32 time_remaining_seconds = 4; // Estimated time left if is_calibrating
+        repeated uint32 channels_in_progress = 5 [(nanopb).max_count = 4];
+}
+
+// --- ManageCalibration Command Wrapper ---
+
+// Request wrapper for the MANAGE_CALIBRATION command type
+message ManageCalibrationRequest {
+        CalibrationOperation operation = 1;
+        oneof operation_payload {
+                ReadCalibrationParamsRequest read_params = 2;
+                StartCalibrationProcedureRequest start_procedure = 3;
+                GetCalibrationStatusRequest get_status = 4;
+                // CancelCalibrationProcedureRequest cancel_procedure = 5; // Optional
+        }
+}
+
+// Response wrapper for the MANAGE_CALIBRATION command type
+message ManageCalibrationResponse {
+        CalibrationOperation operation = 1; // Echoes
+        oneof operation_response_payload {
+                ReadCalibrationParamsResponse read_params = 2;
+                StartCalibrationProcedureResponse start_procedure = 3;
+                GetCalibrationStatusResponse get_status = 4;
+                // CancelCalibrationProcedureResponse cancel_procedure = 5; // Optional
+        }
+}
+
+// --- Calibration Wrappers (Used in message type Main) ---
+
+// Top-level request message for the Calibration category
+message CalibrationRequest {
+        ManageCalibrationRequest manage_calibration = 1;
+}
+
+// Top-level response message for the Calibration category
+message CalibrationResponse {
+        ManageCalibrationResponse manage_calibration = 1;
+}
