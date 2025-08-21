@@ -402,33 +402,37 @@ namespace DeviceCommunication.Infrastructure.Services
                 var unicastDestinations = string.Join(",", 
                     _ptpClients.Values.Select(c => c.IpAddress));
                 
-                // Detect the network interface
-                var networkInterface = Environment.GetEnvironmentVariable("PTP_INTERFACE") ?? "eth0";
+                // Detect the network interface - try to find a valid one
+                var networkInterface = await DetectNetworkInterfaceAsync();
                 
-                var config = $@"[ptpengine]
-ptpengine:interface={networkInterface}
-ptpengine:preset=masteronly
-ptpengine:ip_mode=unicast
-ptpengine:unicast_destinations={unicastDestinations}
-ptpengine:domain=0
-ptpengine:hw_timestamping=y
-ptpengine:software_timestamping=y
-ptpengine:unicast_negotiation=y
-ptpengine:unicast_grant_duration=300
-ptpengine:event_port=319
-ptpengine:general_port=320
-
-[clock]
-clock:no_adjust=n
-clock:frequency_adjustment_enable=y
-
-[servo]
-servo:kp=0.1
-servo:ki=0.001
-
-[global]
-global:log_level=LOG_INFO
-global:log_file=/tmp/ptpd.log";
+                // Use minimal, working PTPd configuration based on official examples
+                var configBuilder = new StringBuilder();
+                
+                // Required basic settings
+                configBuilder.AppendLine("[ptpengine]");
+                configBuilder.AppendLine($"interface={networkInterface}");
+                configBuilder.AppendLine("preset=masteronly");
+                configBuilder.AppendLine("ip_mode=unicast");
+                configBuilder.AppendLine($"unicast_destinations={unicastDestinations}");
+                configBuilder.AppendLine("domain=0");
+                configBuilder.AppendLine("delay_mechanism=E2E");
+                configBuilder.AppendLine();
+                
+                configBuilder.AppendLine("[clock]");
+                configBuilder.AppendLine("no_adjust=n");
+                configBuilder.AppendLine();
+                
+                configBuilder.AppendLine("[servo]");
+                configBuilder.AppendLine("kp=0.1");
+                configBuilder.AppendLine("ki=0.001");
+                configBuilder.AppendLine();
+                
+                configBuilder.AppendLine("[global]");
+                configBuilder.AppendLine("log_level=LOG_INFO");
+                configBuilder.AppendLine("foreground=n");
+                configBuilder.AppendLine("ignore_lock=y");
+                
+                var config = configBuilder.ToString();
 
                 // Ensure the directory exists
                 var configDir = Path.GetDirectoryName(PTPD_CONFIG_PATH);
@@ -458,6 +462,104 @@ global:log_file=/tmp/ptpd.log";
                 _logger.LogError(ex, "Failed to update PTPd configuration at {ConfigPath}", PTPD_CONFIG_PATH);
                 throw;
             }
+        }
+
+        private async Task<string> DetectNetworkInterfaceAsync()
+        {
+            // Try environment variable first
+            var envInterface = Environment.GetEnvironmentVariable("PTP_INTERFACE");
+            if (!string.IsNullOrEmpty(envInterface))
+            {
+                if (await IsInterfaceValidAsync(envInterface))
+                {
+                    return envInterface;
+                }
+                else
+                {
+                    _logger.LogWarning("Configured interface {Interface} does not exist", envInterface);
+                }
+            }
+
+            // Try to detect automatically
+            var commonInterfaces = new[] { "eth0", "enp0s3", "ens33", "wlan0", "lo" };
+            
+            foreach (var iface in commonInterfaces)
+            {
+                if (await IsInterfaceValidAsync(iface))
+                {
+                    _logger.LogInformation("Auto-detected network interface: {Interface}", iface);
+                    return iface;
+                }
+            }
+
+            // Fallback to first available interface
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ip",
+                    Arguments = "link show",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    var output = await process.StandardOutput.ReadToEndAsync();
+
+                    // Parse output to find first non-loopback interface
+                    var lines = output.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.Contains(": ") && !line.Contains("lo:") && line.Contains("state UP"))
+                        {
+                            var parts = line.Split(": ");
+                            if (parts.Length > 1)
+                            {
+                                var interfaceName = parts[1].Split('@')[0]; // Handle interfaces like "eth0@if2"
+                                _logger.LogInformation("Found active interface: {Interface}", interfaceName);
+                                return interfaceName;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to auto-detect network interface");
+            }
+
+            // Final fallback
+            _logger.LogWarning("Could not detect network interface, using 'lo' as fallback");
+            return "lo";
+        }
+
+        private async Task<bool> IsInterfaceValidAsync(string interfaceName)
+        {
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ip",
+                    Arguments = $"link show {interfaceName}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    return process.ExitCode == 0;
+                }
+            }
+            catch
+            {
+                // Interface check failed
+            }
+            return false;
         }
 
         private void RefreshGrants(object? state)
