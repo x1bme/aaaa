@@ -26,6 +26,9 @@ builder.Services.AddSingleton<TcpConnectionManager>();
 // Register the DeviceCommandOrchestrator as a singleton
 builder.Services.AddSingleton<DeviceCommandOrchestrator>();
 
+builder.Services.AddSingleton<PtpManagementService>();
+builder.Services.AddHostedService<PtpManagementService>();
+
 // Register Background Services
 // To enable all, uncomment them. For focused testing, keep some commented.
 //builder.Services.AddHostedService<HeartbeatService>();
