@@ -48,69 +48,271 @@ namespace DeviceCommunication.Infrastructure.Services
             
             try
             {
-                // Check if ptpd is available
                 if (!IsPtpdAvailable())
                 {
                     _logger.LogWarning("PTPd is not available on this system. PTP management will be disabled.");
                     return;
                 }
                 
-                // Start PTPd process
                 await StartPtpdProcessAsync();
                 
-                // Start listening for PTP signaling messages
-                await StartPtpSignalingListenerAsync();
+                // Add this delay and logging
+                await Task.Delay(3000, cancellationToken); // Wait for PTPd to fully start
                 
-                // Start grant refresh timer
+                await LogPtpStartupStatus();
+                
                 _grantRefreshTimer = new Timer(
                     RefreshGrants, 
                     null, 
                     TimeSpan.FromSeconds(30), 
                     TimeSpan.FromSeconds(30));
                 
-                _logger.LogInformation("PTP Management Service started");
+                _logger.LogInformation("PTP Management Service started successfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to start PTP Management Service");
-                // Don't rethrow - allow the application to continue without PTP
                 _logger.LogWarning("Application will continue without PTP management");
             }
+        }
+
+        private async Task LogPtpStartupStatus()
+        {
+            try
+            {
+                _logger.LogInformation("=== PTP Master Status ===");
+                
+                var networkInterface = await DetectNetworkInterfaceAsync();
+                _logger.LogInformation("PTP Interface: {Interface}", networkInterface);
+                
+                var ipAddress = await GetInterfaceIpAddress(networkInterface);
+                if (!string.IsNullOrEmpty(ipAddress))
+                {
+                    _logger.LogInformation("PTP Master IP: {IpAddress}", ipAddress);
+                    _logger.LogInformation("🎯 Clients should connect to: {IpAddress}", ipAddress);
+                }
+                
+                // Check if PTPd process is running
+                if (_ptpdProcess != null && !_ptpdProcess.HasExited)
+                {
+                    _logger.LogInformation("✅ PTPd Master process running (PID: {Pid})", _ptpdProcess.Id);
+                }
+                else
+                {
+                    _logger.LogWarning("✗ PTPd Master process not running");
+                }
+                
+                // Check ports with a delay to ensure PTPd has bound them
+                await Task.Delay(2000);
+                var port319Bound = await IsPortBound(319);
+                var port320Bound = await IsPortBound(320);
+                
+                _logger.LogInformation("PTP Event Port 319: {Status}", port319Bound ? "✅ BOUND" : "❌ NOT BOUND");
+                _logger.LogInformation("PTP General Port 320: {Status}", port320Bound ? "✅ BOUND" : "❌ NOT BOUND");
+                
+                if (port319Bound && port320Bound && _ptpdProcess != null && !_ptpdProcess.HasExited)
+                {
+                    _logger.LogInformation("🚀 PTP Master is READY for client connections!");
+                    _logger.LogInformation("📡 Test with: sudo ptpd2 -g -i <interface> -u {IpAddress}", ipAddress ?? "YOUR_IP");
+                }
+                else
+                {
+                    _logger.LogError("❌ PTP Master is not ready - check process and port status above");
+                }
+                
+                _logger.LogInformation("========================");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to log PTP startup status");
+            }
+        }
+
+        private async Task<string?> GetInterfaceIpAddress(string interfaceName)
+        {
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ip",
+                    Arguments = $"addr show {interfaceName}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    var output = await process.StandardOutput.ReadToEndAsync();
+                    
+                    // Look for inet line
+                    var lines = output.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.Trim().StartsWith("inet ") && !line.Contains("127.0.0.1"))
+                        {
+                            var parts = line.Trim().Split(' ');
+                            if (parts.Length >= 2)
+                            {
+                                var ipWithMask = parts[1];
+                                var ip = ipWithMask.Split('/')[0];
+                                return ip;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not get IP address for interface {Interface}", interfaceName);
+            }
+            return null;
+        }
+
+        private async Task<bool> IsPortBound(int port)
+        {
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "netstat",
+                    Arguments = "-ulnp",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    var output = await process.StandardOutput.ReadToEndAsync();
+                    return output.Contains($":{port} ");
+                }
+            }
+            catch
+            {
+                // Fallback: try to bind to the port briefly
+                try
+                {
+                    using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                    socket.Bind(new IPEndPoint(IPAddress.Any, port));
+                    return false; // Port was available (not bound by PTPd)
+                }
+                catch
+                {
+                    return true; // Port was in use (probably by PTPd)
+                }
+            }
+            return false;
         }
 
         private bool IsPtpdAvailable()
         {
             try
             {
-                var process = Process.Start(new ProcessStartInfo
+                // Check for ptpd
+                var ptpdResult = CheckPtpdCommand("ptpd");
+                if (ptpdResult.available)
                 {
-                    FileName = "which",
-                    Arguments = "ptpd",
+                    _logger.LogInformation("Found ptpd: {Version}", ptpdResult.version);
+                    return true;
+                }
+                
+                // Check for ptpd2
+                var ptpd2Result = CheckPtpdCommand("ptpd2");
+                if (ptpd2Result.available)
+                {
+                    _logger.LogInformation("Found ptpd2: {Version}", ptpd2Result.version);
+                    _logger.LogWarning("Using ptpd2, but configuration expects 'ptpd' command");
+                    return true;
+                }
+                
+                _logger.LogError("Neither 'ptpd' nor 'ptpd2' commands are available");
+                _logger.LogInformation("Install PTPd with: sudo apt-get install ptpd");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking PTPd availability");
+                return false;
+            }
+        }
+
+        private (bool available, string version) CheckPtpdCommand(string command)
+        {
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = command,
+                    Arguments = "--version",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 });
                 
-                process?.WaitForExit();
-                return process?.ExitCode == 0;
+                if (process != null)
+                {
+                    process.WaitForExit(3000); // 3 second timeout
+                    if (process.ExitCode == 0)
+                    {
+                        var output = process.StandardOutput.ReadToEnd();
+                        return (true, output.Trim());
+                    }
+                }
             }
             catch
             {
-                return false;
+                // Command not found or other error
             }
+            
+            // Try alternative check
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "which",
+                    Arguments = command,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+                
+                if (process != null)
+                {
+                    process.WaitForExit(3000);
+                    if (process.ExitCode == 0)
+                    {
+                        var path = process.StandardOutput.ReadToEnd().Trim();
+                        return (true, $"Found at {path}");
+                    }
+                }
+            }
+            catch
+            {
+                // Command not found
+            }
+            
+            return (false, "");
         }
-
         private async Task StartPtpdProcessAsync()
         {
             try
             {
-                // Generate initial config
                 await UpdatePtpdConfigurationAsync();
                 
-                // Check if the config file was created successfully
                 if (!File.Exists(PTPD_CONFIG_PATH))
                 {
                     throw new FileNotFoundException($"Failed to create PTPd config file at {PTPD_CONFIG_PATH}");
+                }
+
+                _logger.LogInformation("PTPd configuration file contents:");
+                var configContent = await File.ReadAllTextAsync(PTPD_CONFIG_PATH);
+                foreach (var line in configContent.Split('\n'))
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                        _logger.LogInformation("  {Line}", line.Trim());
                 }
                 
                 _ptpdProcess = new Process
@@ -121,32 +323,230 @@ namespace DeviceCommunication.Infrastructure.Services
                         Arguments = $"-c {PTPD_CONFIG_PATH}",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    }
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    },
+                    EnableRaisingEvents = true
                 };
+                
+                // Track if PTPd has successfully started
+                bool ptpdStartedSuccessfully = false;
                 
                 _ptpdProcess.OutputDataReceived += (sender, e) => 
                 {
                     if (!string.IsNullOrEmpty(e.Data))
-                        _logger.LogDebug("PTPd: {Output}", e.Data);
+                    {
+                        LogPtpdMessage(e.Data, false);
+                        
+                        // Check for successful startup indicators
+                        if (e.Data.Contains("PTPDv2 started successfully") || 
+                            e.Data.Contains("Now in state: PTP_LISTENING"))
+                        {
+                            ptpdStartedSuccessfully = true;
+                        }
+                    }
                 };
                 
                 _ptpdProcess.ErrorDataReceived += (sender, e) => 
                 {
                     if (!string.IsNullOrEmpty(e.Data))
-                        _logger.LogWarning("PTPd Error: {Error}", e.Data);
+                    {
+                        LogPtpdMessage(e.Data, true);
+                        
+                        // Check for successful startup indicators (PTPd sends info to stderr too)
+                        if (e.Data.Contains("PTPDv2 started successfully") || 
+                            e.Data.Contains("Now in state: PTP_LISTENING") ||
+                            e.Data.Contains("Configuration OK"))
+                        {
+                            ptpdStartedSuccessfully = true;
+                        }
+                    }
                 };
+
+                _ptpdProcess.Exited += (sender, e) =>
+                {
+                    var process = sender as Process;
+                    if (process != null)
+                    {
+                        _logger.LogError("🚨 PTPd process EXITED! Exit code: {ExitCode}", process.ExitCode);
+                    }
+                };
+                
+                _logger.LogInformation("Starting PTPd with command: ptpd -c {ConfigPath}", PTPD_CONFIG_PATH);
                 
                 _ptpdProcess.Start();
                 _ptpdProcess.BeginOutputReadLine();
                 _ptpdProcess.BeginErrorReadLine();
                 
                 _logger.LogInformation("PTPd process started with PID {Pid}", _ptpdProcess.Id);
+                
+                // Wait for PTPd to initialize and check success
+                await Task.Delay(5000);
+                
+                if (_ptpdProcess.HasExited)
+                {
+                    _logger.LogError("❌ PTPd process exited after start! Exit code: {ExitCode}", _ptpdProcess.ExitCode);
+                }
+                else if (ptpdStartedSuccessfully)
+                {
+                    _logger.LogInformation("🎉 PTPd started successfully and is in LISTENING state!");
+                    _logger.LogInformation("✅ PTP Master is ready to accept client connections");
+                }
+                else
+                {
+                    _logger.LogInformation("ℹ️ PTPd process is running (PID: {Pid}) - waiting for startup confirmation...", _ptpdProcess.Id);
+                }
+                
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to start PTPd process");
                 throw;
+            }
+        }
+
+        private void LogPtpdMessage(string message, bool fromStderr)
+        {
+            // Parse PTPd log levels from the message
+            // PTPd format: timestamp ptpd2[pid].module (level) message
+            
+            if (string.IsNullOrEmpty(message)) return;
+            
+            // Extract log level from PTPd message
+            var logLevel = ExtractPtpdLogLevel(message);
+            var cleanMessage = message.Trim();
+            
+            switch (logLevel.ToLower())
+            {
+                case "error":
+                case "critical":
+                    _logger.LogError("PTPd: {Message}", cleanMessage);
+                    break;
+                case "warning":
+                case "warn":
+                    _logger.LogWarning("PTPd: {Message}", cleanMessage);
+                    break;
+                case "notice":
+                case "info":
+                    _logger.LogInformation("PTPd: {Message}", cleanMessage);
+                    break;
+                case "debug":
+                    _logger.LogDebug("PTPd: {Message}", cleanMessage);
+                    break;
+                default:
+                    // If we can't determine the level, use Info for stdout, Warning for stderr
+                    if (fromStderr)
+                        _logger.LogInformation("PTPd: {Message}", cleanMessage);  // Most PTPd info comes via stderr
+                    else
+                        _logger.LogInformation("PTPd: {Message}", cleanMessage);
+                    break;
+            }
+        }
+        private string ExtractPtpdLogLevel(string message)
+        {
+            // Look for pattern like "(info)" or "(notice)" in PTPd log messages
+            var match = System.Text.RegularExpressions.Regex.Match(message, @"\((\w+)\)");
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return match.Groups[1].Value;
+            }
+            return "info"; // default
+        }
+        // Add this diagnostic method
+        private async Task DiagnosePtpdIssue()
+        {
+            try
+            {
+                // Try running ptpd with verbose output to see what's wrong
+                using var diagProcess = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ptpd",
+                    Arguments = $"-c {PTPD_CONFIG_PATH} ",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (diagProcess != null)
+                {
+                    // Give it a few seconds to show error messages
+                    var outputTask = diagProcess.StandardOutput.ReadToEndAsync();
+                    var errorTask = diagProcess.StandardError.ReadToEndAsync();
+                    
+                    var completed = await Task.WhenAny(
+                        Task.WhenAll(outputTask, errorTask),
+                        Task.Delay(5000) // 5 second timeout
+                    );
+                    
+                    if (completed != Task.WhenAll(outputTask, errorTask))
+                    {
+                        // Timeout - kill the process
+                        diagProcess.Kill();
+                        _logger.LogWarning("PTPd diagnostic process timed out");
+                    }
+                    else
+                    {
+                        var stdout = await outputTask;
+                        var stderr = await errorTask;
+                        
+                        if (!string.IsNullOrEmpty(stdout))
+                        {
+                            _logger.LogInformation("PTPd diagnostic stdout: {Output}", stdout);
+                        }
+                        if (!string.IsNullOrEmpty(stderr))
+                        {
+                            _logger.LogError("PTPd diagnostic stderr: {Error}", stderr);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to run PTPd diagnostic");
+            }
+        }
+
+        // Also add this method to check what's actually using the ports
+        private async Task CheckWhatIsUsingPorts()
+        {
+            try
+            {
+                _logger.LogInformation("Checking what processes are using PTP ports...");
+                
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "sudo",
+                    Arguments = "lsof -i :319 -i :320",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    var output = await process.StandardOutput.ReadToEndAsync();
+                    
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        _logger.LogInformation("Processes using PTP ports:");
+                        foreach (var line in output.Split('\n'))
+                        {
+                            if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("COMMAND"))
+                            {
+                                _logger.LogInformation("  {Line}", line);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("No processes found using PTP ports 319/320");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not check port usage");
             }
         }
 
@@ -413,7 +813,16 @@ namespace DeviceCommunication.Infrastructure.Services
                 configBuilder.AppendLine($"interface={networkInterface}");
                 configBuilder.AppendLine("preset=masteronly");
                 configBuilder.AppendLine("ip_mode=unicast");
-                configBuilder.AppendLine($"unicast_destinations={unicastDestinations}");
+                if (!string.IsNullOrEmpty(unicastDestinations))
+                {
+                    configBuilder.AppendLine($"unicast_destinations={unicastDestinations}");
+                }
+                else
+                {
+                    // Use a placeholder/dummy IP when no real destinations exist yet
+                    // This allows PTPd to start in unicast mode and be ready for real clients
+                    configBuilder.AppendLine("unicast_destinations=192.168.86.222");
+                }
                 configBuilder.AppendLine("domain=0");
                 configBuilder.AppendLine("delay_mechanism=E2E");
                 configBuilder.AppendLine();
@@ -429,7 +838,8 @@ namespace DeviceCommunication.Infrastructure.Services
                 
                 configBuilder.AppendLine("[global]");
                 configBuilder.AppendLine("log_level=LOG_INFO");
-                configBuilder.AppendLine("foreground=n");
+                configBuilder.AppendLine("foreground=y");
+                configBuilder.AppendLine("verbose_foreground=y");
                 configBuilder.AppendLine("ignore_lock=y");
                 
                 var config = configBuilder.ToString();
@@ -481,7 +891,7 @@ namespace DeviceCommunication.Infrastructure.Services
             }
 
             // Try to detect automatically
-            var commonInterfaces = new[] { "eth0", "enp0s3", "ens33", "wlan0", "lo" };
+            var commonInterfaces = new[] { "eth0", "enp0s3", "ens33", "wlan0", "enp3s0" };
             
             foreach (var iface in commonInterfaces)
             {
