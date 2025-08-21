@@ -1,47 +1,40 @@
-#!/bin/bash
-set -e
-
-echo "Starting Device Communication Server with PTPd..."
-
 # Detect network interface
 INTERFACE=${PTP_INTERFACE:-eth0}
 echo "Using network interface: $INTERFACE"
 
+# Check if interface exists
+if ! ip link show $INTERFACE > /dev/null 2>&1; then
+    echo "ERROR: Interface $INTERFACE does not exist!"
+    echo "Available interfaces:"
+    ip link show
+    
+    # Try to find the first non-loopback interface
+    INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+    if [ -z "$INTERFACE" ]; then
+        echo "ERROR: Could not find any suitable network interface"
+        exit 1
+    fi
+    echo "Using interface: $INTERFACE"
+fi
+
+# Wait for interface to have an IP address
+echo "Waiting for interface $INTERFACE to get an IP address..."
+timeout=30
+count=0
+while [ $count -lt $timeout ]; do
+    if ip addr show $INTERFACE | grep -q "inet "; then
+        echo "Interface $INTERFACE has an IP address"
+        break
+    fi
+    echo "Waiting for IP address on $INTERFACE... ($count/$timeout)"
+    sleep 1
+    count=$((count + 1))
+done
+
+if [ $count -eq $timeout ]; then
+    echo "ERROR: Interface $INTERFACE never got an IP address"
+    exit 1
+fi
+
 # Update interface in PTPd configuration
 sed -i "s/ptpengine:interface=.*/ptpengine:interface=$INTERFACE/" /etc/ptpd.conf
-
-# Check for hardware timestamping support
-echo "Checking hardware timestamping capabilities..."
-if ethtool -T $INTERFACE 2>/dev/null | grep -q "hardware-transmit"; then
-    echo "Hardware timestamping is supported on $INTERFACE"
-    
-    # Enable hardware timestamping
-    ethtool -K $INTERFACE rx-all on 2>/dev/null || true
-    ethtool -K $INTERFACE tx on 2>/dev/null || true
-    ethtool -K $INTERFACE rx on 2>/dev/null || true
-    
-    # Ensure PTPd uses hardware timestamping
-    sed -i 's/ptpengine:hw_timestamping=.*/ptpengine:hw_timestamping=y/' /etc/ptpd.conf
-else
-    echo "Hardware timestamping not available, using software timestamping"
-    sed -i 's/ptpengine:hw_timestamping=.*/ptpengine:hw_timestamping=n/' /etc/ptpd.conf
-fi
-
-# Set up iptables rules for PTP if available
-if command -v iptables &> /dev/null; then
-    echo "Setting up firewall rules for PTP..."
-    # Allow PTP event messages (port 319)
-    iptables -A INPUT -p udp --dport 319 -j ACCEPT 2>/dev/null || true
-    # Allow PTP general messages (port 320)
-    iptables -A INPUT -p udp --dport 320 -j ACCEPT 2>/dev/null || true
-    # Allow PTP multicast addresses
-    iptables -A INPUT -d 224.0.1.129 -j ACCEPT 2>/dev/null || true
-    iptables -A INPUT -d 224.0.0.107 -j ACCEPT 2>/dev/null || true
-fi
-
-# Create required directories
-mkdir -p /var/run/ptpd
-mkdir -p /var/log/ptpd
-
-echo "Starting services..."
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
