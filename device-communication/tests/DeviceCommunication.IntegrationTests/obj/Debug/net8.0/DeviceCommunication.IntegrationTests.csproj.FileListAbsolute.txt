@@ -90,9 +90,10 @@
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.AssemblyInfoInputs.cache
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.AssemblyInfo.cs
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.csproj.CoreCompileInputs.cache
-/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCo.5709AA29.Up2Date
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.dll
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/refint/DeviceCommunication.IntegrationTests.dll
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.pdb
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.genruntimeconfig.cache
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/ref/DeviceCommunication.IntegrationTests.dll
+/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.sourcelink.json
+/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.IntegrationTests/obj/Debug/net8.0/DeviceCommunication.IntegrationTests.csproj.CopyComplete

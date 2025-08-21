@@ -26,12 +26,20 @@ namespace DeviceCommunication.Infrastructure.Services
 
         private const int PTP_EVENT_PORT = 319;
         private const int PTP_GENERAL_PORT = 320;
-        private const string PTPD_CONFIG_PATH = "/etc/ptpd_dynamic.conf";
+        
+        // Use a writable path instead of /etc/
+        private readonly string PTPD_CONFIG_PATH;
 
         public PtpManagementService(ILogger<PtpManagementService> logger)
         {
             _logger = logger;
             _ptpClients = new ConcurrentDictionary<string, PtpClientInfo>();
+            
+            // Use a writable directory - either temp or current directory
+            var configDir = Environment.GetEnvironmentVariable("PTPD_CONFIG_DIR") ?? Path.GetTempPath();
+            PTPD_CONFIG_PATH = Path.Combine(configDir, "ptpd_dynamic.conf");
+            
+            _logger.LogInformation("PTPd config will be written to: {ConfigPath}", PTPD_CONFIG_PATH);
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -40,6 +48,13 @@ namespace DeviceCommunication.Infrastructure.Services
             
             try
             {
+                // Check if ptpd is available
+                if (!IsPtpdAvailable())
+                {
+                    _logger.LogWarning("PTPd is not available on this system. PTP management will be disabled.");
+                    return;
+                }
+                
                 // Start PTPd process
                 await StartPtpdProcessAsync();
                 
@@ -58,7 +73,30 @@ namespace DeviceCommunication.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to start PTP Management Service");
-                throw;
+                // Don't rethrow - allow the application to continue without PTP
+                _logger.LogWarning("Application will continue without PTP management");
+            }
+        }
+
+        private bool IsPtpdAvailable()
+        {
+            try
+            {
+                var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "which",
+                    Arguments = "ptpd",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+                
+                process?.WaitForExit();
+                return process?.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -68,6 +106,12 @@ namespace DeviceCommunication.Infrastructure.Services
             {
                 // Generate initial config
                 await UpdatePtpdConfigurationAsync();
+                
+                // Check if the config file was created successfully
+                if (!File.Exists(PTPD_CONFIG_PATH))
+                {
+                    throw new FileNotFoundException($"Failed to create PTPd config file at {PTPD_CONFIG_PATH}");
+                }
                 
                 _ptpdProcess = new Process
                 {
@@ -353,11 +397,16 @@ namespace DeviceCommunication.Infrastructure.Services
 
         private async Task UpdatePtpdConfigurationAsync()
         {
-            var unicastDestinations = string.Join(",", 
-                _ptpClients.Values.Select(c => c.IpAddress));
-            
-            var config = $@"[ptpengine]
-ptpengine:interface=eth0
+            try
+            {
+                var unicastDestinations = string.Join(",", 
+                    _ptpClients.Values.Select(c => c.IpAddress));
+                
+                // Detect the network interface
+                var networkInterface = Environment.GetEnvironmentVariable("PTP_INTERFACE") ?? "eth0";
+                
+                var config = $@"[ptpengine]
+ptpengine:interface={networkInterface}
 ptpengine:preset=masteronly
 ptpengine:ip_mode=unicast
 ptpengine:unicast_destinations={unicastDestinations}
@@ -379,21 +428,35 @@ servo:ki=0.001
 
 [global]
 global:log_level=LOG_INFO
-global:log_file=/var/log/ptpd.log";
+global:log_file=/tmp/ptpd.log";
 
-            await File.WriteAllTextAsync(PTPD_CONFIG_PATH, config);
-            
-            // Send SIGHUP to reload config
-            if (_ptpdProcess != null && !_ptpdProcess.HasExited)
+                // Ensure the directory exists
+                var configDir = Path.GetDirectoryName(PTPD_CONFIG_PATH);
+                if (!string.IsNullOrEmpty(configDir) && !Directory.Exists(configDir))
+                {
+                    Directory.CreateDirectory(configDir);
+                }
+
+                await File.WriteAllTextAsync(PTPD_CONFIG_PATH, config);
+                _logger.LogDebug("Updated PTPd configuration at {ConfigPath}", PTPD_CONFIG_PATH);
+                
+                // Send SIGHUP to reload config
+                if (_ptpdProcess != null && !_ptpdProcess.HasExited)
+                {
+                    try
+                    {
+                        Process.Start("kill", $"-HUP {_ptpdProcess.Id}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send SIGHUP to PTPd");
+                    }
+                }
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    Process.Start("kill", $"-HUP {_ptpdProcess.Id}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to send SIGHUP to PTPd");
-                }
+                _logger.LogError(ex, "Failed to update PTPd configuration at {ConfigPath}", PTPD_CONFIG_PATH);
+                throw;
             }
         }
 
@@ -447,6 +510,20 @@ global:log_file=/var/log/ptpd.log";
             {
                 _ptpdProcess.Kill();
                 await _ptpdProcess.WaitForExitAsync(cancellationToken);
+            }
+            
+            // Clean up config file
+            try
+            {
+                if (File.Exists(PTPD_CONFIG_PATH))
+                {
+                    File.Delete(PTPD_CONFIG_PATH);
+                    _logger.LogDebug("Cleaned up PTPd config file at {ConfigPath}", PTPD_CONFIG_PATH);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clean up PTPd config file");
             }
         }
 

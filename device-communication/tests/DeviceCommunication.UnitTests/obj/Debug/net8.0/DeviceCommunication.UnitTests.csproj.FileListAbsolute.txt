@@ -90,9 +90,10 @@
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.AssemblyInfoInputs.cache
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.AssemblyInfo.cs
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.csproj.CoreCompileInputs.cache
-/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCo.4BB6BA6F.Up2Date
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.dll
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/refint/DeviceCommunication.UnitTests.dll
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.pdb
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.genruntimeconfig.cache
 /home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/ref/DeviceCommunication.UnitTests.dll
+/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.sourcelink.json
+/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/obj/Debug/net8.0/DeviceCommunication.UnitTests.csproj.CopyComplete

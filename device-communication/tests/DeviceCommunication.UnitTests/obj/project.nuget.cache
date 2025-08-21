@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "0zRORHoCOVY=",
+  "dgSpecHash": "PkI7gxwDIzW7LbBPvJztG6/lvL43uhMjdbnWt7U7tavDd1JRHlN7cdMzVP9dzoQWRIWbygli/5hEHyNKazcAIQ==",
   "success": true,
   "projectFilePath": "/home/dudu/dev/csharp/delme/dau/device-communication/tests/DeviceCommunication.UnitTests/DeviceCommunication.UnitTests.csproj",
   "expectedPackageFiles": [
@@ -93,8 +93,7 @@
     "/home/dudu/.nuget/packages/xunit.extensibility.core/2.4.2/xunit.extensibility.core.2.4.2.nupkg.sha512",
     "/home/dudu/.nuget/packages/xunit.extensibility.execution/2.4.2/xunit.extensibility.execution.2.4.2.nupkg.sha512",
     "/home/dudu/.nuget/packages/xunit.runner.visualstudio/2.4.5/xunit.runner.visualstudio.2.4.5.nupkg.sha512",
-    "/home/dudu/.nuget/packages/microsoft.netcore.app.ref/8.0.12/microsoft.netcore.app.ref.8.0.12.nupkg.sha512",
-    "/home/dudu/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.12/microsoft.aspnetcore.app.ref.8.0.12.nupkg.sha512"
+    "/home/dudu/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.19/microsoft.aspnetcore.app.ref.8.0.19.nupkg.sha512"
   ],
   "logs": []
 }
