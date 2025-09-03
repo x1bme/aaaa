@@ -1,11 +1,8 @@
-# Get your main interface
-INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
-echo "Using interface: $INTERFACE"
-
-# Create config with your actual interface
-cat > ptp.conf << EOF
+cat > ptp.conf << 'EOF'
 [global]
-hybrid_e2e                  1
+hybrid_e2e                  0
+delay_mechanism             E2E
+network_transport           UDPv4
 inhibit_multicast_service   1
 unicast_listen              1
 time_stamping              software
@@ -15,11 +12,11 @@ priority1                  64
 priority2                  64
 clockClass                 6
 
-[$INTERFACE]
+[ens192]
 unicast_listen             1
 EOF
 
-# Run with detected interface
+# Run with UDP transport
 docker run --rm -it \
   --name ptp-master \
   --network host \
@@ -27,5 +24,5 @@ docker run --rm -it \
   -v $(pwd)/ptp.conf:/etc/ptp.conf:ro \
   ubuntu:22.04 bash -c "
     apt-get update && apt-get install -y linuxptp && \
-    ptp4l -f /etc/ptp.conf -i $INTERFACE -m
+    ptp4l -f /etc/ptp.conf -i ens192 -m
   "
