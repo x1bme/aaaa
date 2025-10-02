@@ -1,0 +1,138 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Class1	src/dau/device-communication/src/DeviceCommunication.Core/Class1.cs	/^public class Class1$/;"	c
+Class1	src/dau/device-communication/src/DeviceCommunication.Grpc/Class1.cs	/^public class Class1$/;"	c
+Class1	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Class1.cs	/^public class Class1$/;"	c
+Class1	src/dau/device-proxy/src/DeviceProxy.Core/Class1.cs	/^public class Class1$/;"	c
+Class1	src/dau/device-proxy/src/DeviceProxy.Grpc/Class1.cs	/^public class Class1$/;"	c
+Class1	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Class1.cs	/^public class Class1$/;"	c
+Class1	src/web/api-gateway/src/ApiGateway.Core/Class1.cs	/^public class Class1$/;"	c
+Class1	src/web/api-gateway/src/ApiGateway.Grpc/Class1.cs	/^public class Class1$/;"	c
+Class1	src/web/api-gateway/src/ApiGateway.Infrastructure/Class1.cs	/^public class Class1$/;"	c
+ConnectDevice	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    public override async Task<ConnectDeviceResponse> ConnectDevice($/;"	m	class:DeviceCommunicationService
+ConnectDevice	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    public async Task<IActionResult> ConnectDevice([FromBody] ConnectDeviceRequest request)$/;"	m	class:DeviceController
+ConnectDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Core/Interfaces/IDeviceConnectionManager.cs	/^    Task<DeviceConnection> ConnectDeviceAsync(string deviceId, string connectionParams);$/;"	m	interface:IDeviceConnectionManager
+ConnectDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    public Task<DeviceConnection> ConnectDeviceAsync(string deviceId, string connectionParams)$/;"	m	class:MockDeviceConnectionManager
+ConnectDeviceAsync	src/web/api-gateway/src/ApiGateway.Core/Interfaces/IDeviceClients.cs	/^    Task<(bool success, string message)> ConnectDeviceAsync($/;"	m	interface:IDeviceCommunicationClient
+ConnectDeviceAsync	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceCommunicationClient.cs	/^    public async Task<(bool success, string message)> ConnectDeviceAsync($/;"	m	class:DeviceCommunicationClient
+ConnectDeviceRequest	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^public record ConnectDeviceRequest(string DeviceId, string ConnectionParams);$/;"	m
+ConnectionId	src/dau/device-communication/src/DeviceCommunication.Core/Models/DeviceConnection.cs	/^    public string ConnectionId { get; set; } = "";$/;"	p	class:DeviceConnection
+Data	src/dau/device-proxy/src/DeviceProxy.Core/Models/Message.cs	/^    public byte[] Data { get; set; } = Array.Empty<byte>();$/;"	p	class:Message
+DeviceCommunicationClient	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceCommunicationClient.cs	/^    public DeviceCommunicationClient(GrpcChannel channel, ILogger<DeviceCommunicationClient> logger)$/;"	m	class:DeviceCommunicationClient
+DeviceCommunicationClient	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceCommunicationClient.cs	/^public class DeviceCommunicationClient : IDeviceCommunicationClient$/;"	c
+DeviceCommunicationService	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    public DeviceCommunicationService($/;"	m	class:DeviceCommunicationService
+DeviceCommunicationService	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^public class DeviceCommunicationService : Grpc.DeviceCommunicationService.DeviceCommunicationServiceBase$/;"	c
+DeviceConnection	src/dau/device-communication/src/DeviceCommunication.Core/Models/DeviceConnection.cs	/^public class DeviceConnection$/;"	c
+DeviceController	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    public DeviceController($/;"	m	class:DeviceController
+DeviceController	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^public class DeviceController : ControllerBase$/;"	c
+DeviceId	src/dau/device-communication/src/DeviceCommunication.Core/Models/DeviceConnection.cs	/^    public string DeviceId { get; set; } = "";$/;"	p	class:DeviceConnection
+DeviceProxyClient	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceProxyClient.cs	/^    public DeviceProxyClient(GrpcChannel channel, ILogger<DeviceProxyClient> logger)$/;"	m	class:DeviceProxyClient
+DeviceProxyClient	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceProxyClient.cs	/^public class DeviceProxyClient : IDeviceProxyClient$/;"	c
+DeviceProxyService	src/dau/device-proxy/src/DeviceProxy.Api/Services/DeviceProxyService.cs	/^    public DeviceProxyService(ILogger<DeviceProxyService> logger, IMessageRelayService relayService)$/;"	m	class:DeviceProxyService
+DeviceProxyService	src/dau/device-proxy/src/DeviceProxy.Api/Services/DeviceProxyService.cs	/^public class DeviceProxyService : Grpc.DeviceProxyService.DeviceProxyServiceBase$/;"	c
+DisconnectDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Core/Interfaces/IDeviceConnectionManager.cs	/^    Task<bool> DisconnectDeviceAsync(string deviceId);$/;"	m	interface:IDeviceConnectionManager
+DisconnectDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    public Task<bool> DisconnectDeviceAsync(string deviceId)$/;"	m	class:MockDeviceConnectionManager
+ErrorHandlingMiddleware	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^    public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)$/;"	m	class:ErrorHandlingMiddleware
+ErrorHandlingMiddleware	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^public class ErrorHandlingMiddleware$/;"	c
+ErrorHandlingMiddlewareExtensions	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^public static class ErrorHandlingMiddlewareExtensions$/;"	c
+GetDeviceConnectionAsync	src/dau/device-communication/src/DeviceCommunication.Core/Interfaces/IDeviceConnectionManager.cs	/^    Task<DeviceConnection?> GetDeviceConnectionAsync(string deviceId);$/;"	m	interface:IDeviceConnectionManager
+GetDeviceConnectionAsync	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    public Task<DeviceConnection?> GetDeviceConnectionAsync(string deviceId)$/;"	m	class:MockDeviceConnectionManager
+GetDeviceStatus	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    public override async Task<DeviceStatusResponse> GetDeviceStatus($/;"	m	class:DeviceCommunicationService
+GetDeviceStatus	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    public async Task<IActionResult> GetDeviceStatus(string deviceId)$/;"	m	class:DeviceController
+GetDeviceStatusAsync	src/web/api-gateway/src/ApiGateway.Core/Interfaces/IDeviceClients.cs	/^    Task<(bool success, string message)> GetDeviceStatusAsync($/;"	m	interface:IDeviceCommunicationClient
+GetDeviceStatusAsync	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceCommunicationClient.cs	/^    public async Task<(bool success, string message)> GetDeviceStatusAsync($/;"	m	class:DeviceCommunicationClient
+GreeterService	src/dau/device-communication/src/DeviceCommunication.Api/Services/GreeterService.cs	/^    public GreeterService(ILogger<GreeterService> logger)$/;"	m	class:GreeterService
+GreeterService	src/dau/device-communication/src/DeviceCommunication.Api/Services/GreeterService.cs	/^public class GreeterService : Greeter.GreeterBase$/;"	c
+HandleExceptionAsync	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)$/;"	m	class:ErrorHandlingMiddleware	file:
+IDeviceCommunicationClient	src/web/api-gateway/src/ApiGateway.Core/Interfaces/IDeviceClients.cs	/^public interface IDeviceCommunicationClient$/;"	i
+IDeviceConnectionManager	src/dau/device-communication/src/DeviceCommunication.Core/Interfaces/IDeviceConnectionManager.cs	/^public interface IDeviceConnectionManager$/;"	i
+IDeviceProxyClient	src/web/api-gateway/src/ApiGateway.Core/Interfaces/IDeviceClients.cs	/^public interface IDeviceProxyClient$/;"	i
+IMessageRelayService	src/dau/device-proxy/src/DeviceProxy.Core/Interfaces/IMessageRelayService.cs	/^public interface IMessageRelayService$/;"	i
+InvokeAsync	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^    public async Task InvokeAsync(HttpContext context)$/;"	m	class:ErrorHandlingMiddleware
+IsConnected	src/dau/device-communication/src/DeviceCommunication.Core/Models/DeviceConnection.cs	/^    public bool IsConnected { get; set; }$/;"	p	class:DeviceConnection
+LastActive	src/dau/device-communication/src/DeviceCommunication.Core/Models/DeviceConnection.cs	/^    public DateTime LastActive { get; set; }$/;"	p	class:DeviceConnection
+LastError	src/dau/device-communication/src/DeviceCommunication.Core/Models/DeviceConnection.cs	/^    public string? LastError { get; set; }$/;"	p	class:DeviceConnection
+Message	src/dau/device-proxy/src/DeviceProxy.Core/Models/Message.cs	/^public class Message$/;"	c
+MessageId	src/dau/device-proxy/src/DeviceProxy.Core/Models/Message.cs	/^    public string MessageId { get; set; } = "";$/;"	p	class:Message
+MessageRelayService	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Services/MessageRelayService.cs	/^    public MessageRelayService(ILogger<MessageRelayService> logger)$/;"	m	class:MessageRelayService
+MessageRelayService	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Services/MessageRelayService.cs	/^public class MessageRelayService : IMessageRelayService$/;"	c
+MockDeviceConnectionManager	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    public MockDeviceConnectionManager(ILogger<MockDeviceConnectionManager> logger)$/;"	m	class:MockDeviceConnectionManager
+MockDeviceConnectionManager	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^public class MockDeviceConnectionManager : IDeviceConnectionManager$/;"	c
+ReceiveDataFromDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Core/Interfaces/IDeviceConnectionManager.cs	/^    Task<byte[]?> ReceiveDataFromDeviceAsync(string deviceId);$/;"	m	interface:IDeviceConnectionManager
+ReceiveDataFromDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    public Task<byte[]?> ReceiveDataFromDeviceAsync(string deviceId)$/;"	m	class:MockDeviceConnectionManager
+ReceiveFromDevice	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    public override async Task<ReceiveFromDeviceResponse> ReceiveFromDevice($/;"	m	class:DeviceCommunicationService
+RelayMessage	src/dau/device-proxy/src/DeviceProxy.Api/Services/DeviceProxyService.cs	/^    public override async Task<RelayMessageResponse> RelayMessage($/;"	m	class:DeviceProxyService
+RelayMessage	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    public async Task<IActionResult> RelayMessage([FromBody] RelayMessageRequest request)$/;"	m	class:DeviceController
+RelayMessageAsync	src/dau/device-proxy/src/DeviceProxy.Core/Interfaces/IMessageRelayService.cs	/^    Task<bool> RelayMessageAsync(Message message);$/;"	m	interface:IMessageRelayService
+RelayMessageAsync	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Services/MessageRelayService.cs	/^    public async Task<bool> RelayMessageAsync(Message message)$/;"	m	class:MessageRelayService
+RelayMessageAsync	src/web/api-gateway/src/ApiGateway.Core/Interfaces/IDeviceClients.cs	/^    Task<(bool success, string message)> RelayMessageAsync($/;"	m	interface:IDeviceProxyClient
+RelayMessageAsync	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceProxyClient.cs	/^    public async Task<(bool success, string message)> RelayMessageAsync($/;"	m	class:DeviceProxyClient
+RelayMessageRequest	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^public record RelayMessageRequest(string SourceDeviceId, string TargetDeviceId, string Message);$/;"	m
+SayHello	src/dau/device-communication/src/DeviceCommunication.Api/Services/GreeterService.cs	/^    public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)$/;"	m	class:GreeterService
+SendDataToDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Core/Interfaces/IDeviceConnectionManager.cs	/^    Task<bool> SendDataToDeviceAsync(string deviceId, byte[] data);$/;"	m	interface:IDeviceConnectionManager
+SendDataToDeviceAsync	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    public Task<bool> SendDataToDeviceAsync(string deviceId, byte[] data)$/;"	m	class:MockDeviceConnectionManager
+SendToDevice	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    public override async Task<SendToDeviceResponse> SendToDevice($/;"	m	class:DeviceCommunicationService
+SourceDauId	src/dau/device-proxy/src/DeviceProxy.Core/Models/Message.cs	/^    public string SourceDauId { get; set; } = "";$/;"	p	class:Message
+SubscribeToMessages	src/dau/device-proxy/src/DeviceProxy.Api/Services/DeviceProxyService.cs	/^    public override async Task SubscribeToMessages($/;"	m	class:DeviceProxyService
+SubscribeToMessagesAsync	src/dau/device-proxy/src/DeviceProxy.Core/Interfaces/IMessageRelayService.cs	/^    IAsyncEnumerable<Message> SubscribeToMessagesAsync(string dauId, CancellationToken cancellationToken);$/;"	m	interface:IMessageRelayService
+SubscribeToMessagesAsync	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Services/MessageRelayService.cs	/^    public async IAsyncEnumerable<Message> SubscribeToMessagesAsync($/;"	m	class:MessageRelayService
+TargetDauId	src/dau/device-proxy/src/DeviceProxy.Core/Models/Message.cs	/^    public string TargetDauId { get; set; } = "";$/;"	p	class:Message
+Test1	src/dau/device-communication/tests/DeviceCommunication.IntegrationTests/UnitTest1.cs	/^    public void Test1()$/;"	m	class:UnitTest1
+Test1	src/dau/device-communication/tests/DeviceCommunication.UnitTests/UnitTest1.cs	/^    public void Test1()$/;"	m	class:UnitTest1
+Test1	src/dau/device-proxy/tests/DeviceProxy.IntegrationTests/UnitTest1.cs	/^    public void Test1()$/;"	m	class:UnitTest1
+Test1	src/dau/device-proxy/tests/DeviceProxy.UnitTests/UnitTest1.cs	/^    public void Test1()$/;"	m	class:UnitTest1
+Timestamp	src/dau/device-proxy/src/DeviceProxy.Core/Models/Message.cs	/^    public DateTime Timestamp { get; set; } = DateTime.UtcNow;$/;"	p	class:Message
+UnitTest1	src/dau/device-communication/tests/DeviceCommunication.IntegrationTests/UnitTest1.cs	/^public class UnitTest1$/;"	c
+UnitTest1	src/dau/device-communication/tests/DeviceCommunication.UnitTests/UnitTest1.cs	/^public class UnitTest1$/;"	c
+UnitTest1	src/dau/device-proxy/tests/DeviceProxy.IntegrationTests/UnitTest1.cs	/^public class UnitTest1$/;"	c
+UnitTest1	src/dau/device-proxy/tests/DeviceProxy.UnitTests/UnitTest1.cs	/^public class UnitTest1$/;"	c
+UseErrorHandling	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^    public static IApplicationBuilder UseErrorHandling($/;"	m	class:ErrorHandlingMiddlewareExtensions
+_client	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceCommunicationClient.cs	/^    private readonly DeviceCommunicationService.DeviceCommunicationServiceClient _client;$/;"	f	class:DeviceCommunicationClient	file:
+_client	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceProxyClient.cs	/^    private readonly DeviceProxyService.DeviceProxyServiceClient _client;$/;"	f	class:DeviceProxyClient	file:
+_connectionManager	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    private readonly IDeviceConnectionManager _connectionManager;$/;"	f	class:DeviceCommunicationService	file:
+_connections	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    private readonly Dictionary<string, DeviceConnection> _connections;$/;"	f	class:MockDeviceConnectionManager	file:
+_deviceComm	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    private readonly IDeviceCommunicationClient _deviceComm;$/;"	f	class:DeviceController	file:
+_deviceProxy	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    private readonly IDeviceProxyClient _deviceProxy;$/;"	f	class:DeviceController	file:
+_logger	src/dau/device-communication/src/DeviceCommunication.Api/Services/DeviceCommunicationService.cs	/^    private readonly ILogger<DeviceCommunicationService> _logger;$/;"	f	class:DeviceCommunicationService	file:
+_logger	src/dau/device-communication/src/DeviceCommunication.Api/Services/GreeterService.cs	/^    private readonly ILogger<GreeterService> _logger;$/;"	f	class:GreeterService	file:
+_logger	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    private readonly ILogger<MockDeviceConnectionManager> _logger;$/;"	f	class:MockDeviceConnectionManager	file:
+_logger	src/dau/device-proxy/src/DeviceProxy.Api/Services/DeviceProxyService.cs	/^    private readonly ILogger<DeviceProxyService> _logger;$/;"	f	class:DeviceProxyService	file:
+_logger	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Services/MessageRelayService.cs	/^    private readonly ILogger<MessageRelayService> _logger;$/;"	f	class:MessageRelayService	file:
+_logger	src/web/api-gateway/src/ApiGateway.Api/Controllers/DeviceController.cs	/^    private readonly ILogger<DeviceController> _logger;$/;"	f	class:DeviceController	file:
+_logger	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^    private readonly ILogger<ErrorHandlingMiddleware> _logger;$/;"	f	class:ErrorHandlingMiddleware	file:
+_logger	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceCommunicationClient.cs	/^    private readonly ILogger<DeviceCommunicationClient> _logger;$/;"	f	class:DeviceCommunicationClient	file:
+_logger	src/web/api-gateway/src/ApiGateway.Infrastructure/Clients/DeviceProxyClient.cs	/^    private readonly ILogger<DeviceProxyClient> _logger;$/;"	f	class:DeviceProxyClient	file:
+_messageChannels	src/dau/device-proxy/src/DeviceProxy.Infrastructure/Services/MessageRelayService.cs	/^    private readonly Dictionary<string, Channel<Message>> _messageChannels;$/;"	f	class:MessageRelayService	file:
+_next	src/web/api-gateway/src/ApiGateway.Api/Middleware/ErrorHandlingMiddleware.cs	/^    private readonly RequestDelegate _next;$/;"	f	class:ErrorHandlingMiddleware	file:
+_random	src/dau/device-communication/src/DeviceCommunication.Infrastructure/Services/MockDeviceConnectionManager.cs	/^    private readonly Random _random;  \/\/ For simulating device data$/;"	f	class:MockDeviceConnectionManager	file:
+_relayService	src/dau/device-proxy/src/DeviceProxy.Api/Services/DeviceProxyService.cs	/^    private readonly IMessageRelayService _relayService;$/;"	f	class:DeviceProxyService	file:
+app	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^var app = builder.Build();$/;"	p
+app	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^var app = builder.Build();$/;"	p
+app	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^var app = builder.Build();$/;"	p
+app.MapControllers	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^app.MapControllers();$/;"	m
+app.MapGrpcReflectionService	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^app.MapGrpcReflectionService();$/;"	m
+app.MapGrpcReflectionService	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^app.MapGrpcReflectionService();$/;"	m
+app.MapGrpcService	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^app.MapGrpcService<DeviceCommunicationService>();$/;"	m
+app.MapGrpcService	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^app.MapGrpcService<DeviceProxyService>();$/;"	m
+app.Run	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^app.Run();$/;"	m
+app.Run	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^app.Run();$/;"	m
+app.Run	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^app.Run();$/;"	m
+app.UseAuthentication	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^app.UseAuthentication();$/;"	m
+app.UseAuthorization	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^app.UseAuthorization();$/;"	m
+app.UseRouting	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^app.UseRouting();$/;"	m
+builder.Services.AddControllers	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^builder.Services.AddControllers();$/;"	m
+builder.Services.AddCors	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^builder.Services.AddCors(options =>$/;"	m
+builder.Services.AddEndpointsApiExplorer	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^builder.Services.AddEndpointsApiExplorer();$/;"	m
+builder.Services.AddGrpc	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^builder.Services.AddGrpc();$/;"	m
+builder.Services.AddGrpc	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^builder.Services.AddGrpc();$/;"	m
+builder.Services.AddGrpcReflection	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^builder.Services.AddGrpcReflection();$/;"	m
+builder.Services.AddGrpcReflection	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^builder.Services.AddGrpcReflection();$/;"	m
+builder.Services.AddHealthChecks	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^builder.Services.AddHealthChecks();$/;"	m
+builder.Services.AddLogging	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^builder.Services.AddLogging(logging =>$/;"	m
+builder.Services.AddSingleton	src/dau/device-communication/src/DeviceCommunication.Api/Program.cs	/^builder.Services.AddSingleton<IDeviceConnectionManager, MockDeviceConnectionManager>();$/;"	m
+builder.Services.AddSingleton	src/dau/device-proxy/src/DeviceProxy.Api/Program.cs	/^builder.Services.AddSingleton<IMessageRelayService, MessageRelayService>();$/;"	m
+builder.Services.AddSwaggerGen	src/web/api-gateway/src/ApiGateway.Api/Program.cs	/^builder.Services.AddSwaggerGen();$/;"	m

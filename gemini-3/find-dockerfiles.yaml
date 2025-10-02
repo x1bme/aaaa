@@ -1,0 +1,67 @@
+parameters:
+- name: searchRoot
+  type: string
+  default: '.'
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: GenerateMatrix
+  displayName: 'Generate Dockerfile Matrix'
+  steps:
+    - checkout: self
+
+    - bash: |
+        echo "🔍 Searching for Dockerfiles..."
+        
+        # Create a temporary file to store individual JSON objects
+        temp_json_file=$(mktemp)
+
+        find "${{ parameters.searchRoot }}" -type f -iname "Dockerfile" | while read -r dockerfile; do
+          echo "  📄 Found Dockerfile: $dockerfile"
+          dir=$(dirname "$dockerfile")
+          
+          # Generate a more robust key from the path
+          key=$(echo "$dockerfile" | sed -e 's|^\./||' -e 's|/Dockerfile.*$||' -e 's|[^a-zA-Z0-9]|-|g' | tr '[:upper:]' '[:lower:]')
+          
+          # Generate a clean image name from the directory
+          image_name=$(basename "$dir" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9_.-]//g')
+
+          if [ -z "$key" ] || [ -z "$image_name" ]; then
+            echo "   Skipping entry for $dockerfile due to empty key or image_name."
+            continue
+          fi
+          
+          echo "  Adding to matrix with key: '$key' and image name: '$image_name'"
+          # Create a JSON object for the current Dockerfile and append to the temp file
+          jq -n --arg key "$key" \
+                --arg imageName "$image_name" \
+                --arg dockerfilePath "$(System.DefaultWorkingDirectory)/$dockerfile" \
+                --arg contextPath "$(System.DefaultWorkingDirectory)/$dir" \
+                '{($key): {"imageName": $imageName, "dockerfilePath": $dockerfilePath, "contextPath": $contextPath}}' >> "$temp_json_file"
+        done
+
+        # Merge all JSON objects from the temp file into the final matrix.json
+        jq -s 'add' "$temp_json_file" > matrix.json
+        
+        # Clean up the temporary file
+        rm "$temp_json_file"
+
+        echo " Matrix generation complete."
+        echo "Final matrix.json content:"
+        cat matrix.json
+
+        # Check if the final matrix is empty or just contains "null"
+        if [ ! -s matrix.json ] || [ "$(cat matrix.json)" = "null" ]; then
+          echo "Error: matrix.json is empty or null. No Dockerfiles were found or processed."
+          exit 1
+        fi
+      displayName: 'Generate matrix.json from Dockerfiles'
+
+    - publish: matrix.json
+      artifact: dockerfile-matrix
+      displayName: ' Publish Dockerfile Matrix Artifact'

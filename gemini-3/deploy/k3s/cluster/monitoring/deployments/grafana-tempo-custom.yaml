@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-tempo
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana-tempo
+  template:
+    metadata:
+      labels:
+        app: grafana-tempo
+    spec:
+      containers:
+      - name: grafana-tempo
+        image: localhost:5000/grafana-tempo-custom:2.4.1
+        ports:
+        - containerPort: 3200 # Replace with actual port if needed
+        volumeMounts:
+        - name: tempo-config
+          mountPath: /etc/tempo
+        - name: tempo-storage
+          mountPath: /tmp/tempo/traces
+    volumes:
+    - name: tempo-config
+      configMap:
+        name: tempo-config
+    - name: tempo-storage
+      persistentVolumeClaim:
+        claimName: tempo-storage

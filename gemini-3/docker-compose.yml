@@ -1,0 +1,123 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_container
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ROOTPASSWORD}
+      MYSQL_DATABASE: ${DBNAME}
+      MYSQL_USER: ${DBUSER}
+      MYSQL_PASSWORD: ${DBPASS}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gemini-network
+
+  api-gateway-service:
+    build:
+      context: src/web/api-gateway/src/ApiGateway
+      dockerfile: Dockerfile
+    container_name: api_gateway_container
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=${DBNAME};User=${DBUSER};Password=${DBPASS}
+    ports:
+      - "5000:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - gemini-network
+
+  frontend:
+    build:
+      context: src/web/api-gateway/src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway-service
+    networks:
+      - gemini-network
+
+  migrator:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: src/database/Migrator/Dockerfile
+    depends_on:
+      - mysql
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DBNAME};User=${DBUSER};Password=${DBPASS}"
+      ASPNETCORE_ENVIRONMENT: Production
+    command: [ "dotnet", "Migrator.dll" ]
+    networks:
+      - gemini-network
+
+  archive-importer:
+    env_file:
+      - .env
+    build:
+      context: ./src/database/ArchiveImporter
+      dockerfile: Dockerfile
+    container_name: archive_importer
+    depends_on:
+      - mysql
+    volumes:
+      - ./disassembledFiles:/app/disassembledFiles
+      - ./output:/app/output
+    environment:
+      INPUT_ROOT: ${INPUT_ROOT}
+      OUTPUT_ROOT: ${OUTPUT_ROOT}
+      DEBOUNCE_MS: ${DEBOUNCE_MS}
+      ARCHIVE_PASSWORD: ${ARCHIVE_PASSWORD}
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DBNAME};User=${DBUSER};Password=${DBPASS}"
+    command: ["--once"]
+    networks:
+      - gemini-network
+
+  archiver-service:
+    build:
+      context: .
+      dockerfile: src/database/ArchiverService/Dockerfile
+    container_name: archiver_service_container
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DBNAME};User=${DBUSER};Password=${DBPASS}"
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+    ports:
+      - "6001:80"
+    networks:
+      - gemini-network
+
+  debug-tools:
+    image: nicolaka/netshoot:latest
+    container_name: debug_tools
+    networks:
+      - gemini-network
+    command: sleep infinity
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  gemini-network:
+    driver: bridge

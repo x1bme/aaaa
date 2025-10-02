@@ -1,0 +1,61 @@
+### 1. **Scan the Image for Vulnerabilities**
+
+```bash
+docker scout cves <image>:<tag>
+```
+- Replace `<image>:<tag>` with your image (e.g., `grafana/alloy:latest`).
+- Review the output for critical vulnerabilities and note which component (e.g., OS, language runtime, library) is affected.
+
+---
+
+### 2. **Identify the Vulnerable Component**
+
+- From the Scout output, determine what needs to be updated (e.g., base image, Go version, a specific package).
+
+---
+
+### 3. **Create a Custom Dockerfile**
+
+- Make a directory for your custom build (e.g., `alloy-custom`).
+- Create a `Dockerfile` that is as close as possible to the original, but swaps out the vulnerable component for a fixed version.
+
+**Example (for a base image update):**
+````Dockerfile
+FROM <new-base-image>:<fixed-version>
+# Copy the rest of the Dockerfile instructions from the original image
+# (e.g., install dependencies, copy binaries, set entrypoint, etc.)
+# ...existing code...
+````
+
+- If the vulnerability is in a package, add a line to update it:
+````Dockerfile
+RUN apt-get update && apt-get install -y <package>=<fixed-version>
+````
+
+---
+
+### 4. **Build the Custom Image**
+
+```bash
+docker build -t <your-custom-image>:<tag> ./alloy-custom
+```
+- Replace `<your-custom-image>:<tag>` with your desired name.
+
+---
+
+### 5. **Scan the Custom Image**
+
+```bash
+docker scout cves <your-custom-image>:<tag>
+```
+- Confirm the vulnerability is gone.
+
+---
+
+### 6. **(Optional) Push to Your Registry**
+
+```bash
+docker tag <your-custom-image>:<tag> <your-registry>/<your-custom-image>:<tag>
+docker push <your-registry>/<your-custom-image>:<tag>
+```
+

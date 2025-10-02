@@ -1,0 +1,24 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj files into their subfolders using full paths from the repo root.
+COPY src/database/Migrator/Migrator.csproj ./database/Migrator/
+COPY src/database/DataAccess/DataAccess.csproj ./database/DataAccess/
+
+# Restore only Migrator (it pulls in DataAccess).
+# The path is now relative to the WORKDIR /src
+RUN dotnet restore database/Migrator/Migrator.csproj
+
+# Copy the rest of the source code.
+COPY src ./
+
+# Publish the application from the correct directory.
+WORKDIR /src/database/Migrator
+# Added the project file to the publish command
+RUN dotnet publish Migrator.csproj -c Release -o /app/publish
+
+# Runtime image
+FROM mcr.microsoft.com/dotnet/runtime:8.0
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Migrator.dll"]

@@ -1,0 +1,50 @@
+# Process: Bringing a New Image Into Your k3s Cluster
+
+1. **Identify the Image and Version**
+
+   - Find the exact image and tag you need (e.g., `grafana/grafana:10.4.2`).
+
+2. **Pull the Image Locally**
+
+   ```bash
+   docker pull <image>:<tag>
+   ```
+   Example:
+   ```bash
+   docker pull grafana/grafana:10.4.2
+   ```
+
+3. **Scan for Vulnerabilities**
+
+   ```bash
+   docker scout cves <image>:<tag>
+   ```
+   - Review the output for critical or high vulnerabilities.
+   - If critical/high vulnerabilities are found, consider updating the image or waiting for an upstream fix.
+
+4. **Tag the Image for the Local Registry**
+
+   ```bash
+   docker tag <image>:<tag> localhost:5000/<image-name>:<tag>
+   ```
+   Example:
+   ```bash
+   docker tag grafana/grafana:10.4.2 localhost:5000/grafana:10.4.2
+   ```
+
+5. **Push the Image to the Local Registry**
+
+   ```bash
+   docker push localhost:5000/<image-name>:<tag>
+   ```
+   Example:
+   ```bash
+   docker push localhost:5000/grafana:10.4.2
+   ```
+
+6. **Verify the Image is in the Registry**
+
+   ```bash
+   curl -s http://localhost:5000/v2/_catalog
+   curl -s http://localhost:5000/v2/<image-name>/tags/list
+   ```

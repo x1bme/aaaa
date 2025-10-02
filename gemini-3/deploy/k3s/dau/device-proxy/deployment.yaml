@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-proxy
+  namespace: dau
+  labels:
+    app: device-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: device-proxy
+  template:
+    metadata:
+      labels:
+        app: device-proxy
+    spec:
+      containers:
+      - name: device-proxy
+        image: localhost:5000/device-proxy:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: grpc
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: device-proxy
+  namespace: dau
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: grpc
+    protocol: TCP
+    name: grpc
+  selector:
+    app: device-proxy

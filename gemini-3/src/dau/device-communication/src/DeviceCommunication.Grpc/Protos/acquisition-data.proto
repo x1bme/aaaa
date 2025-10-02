@@ -1,0 +1,35 @@
+syntax = "proto3";
+package ingest.v1;
+import "google/protobuf/timestamp.proto";
+ 
+message AcquisitionHeader { //Once per acquisition
+  string acquisition_id = 1;
+  string device_id = 2;
+  google.protobuf.Timestamp start_time = 3;
+}
+ 
+message ChannelMeta {//once per channel
+  uint32 channel_index = 1;
+  string sensor_id = 2; 
+  string channel_input = 3;
+  uint32 sample_rate_hz = 10; 
+}
+ 
+message ChannelChunk { //the actual channel data
+  repeated sint32 samples = 3;
+  uint32 sequence_number = 4;
+}
+ 
+message StreamMsg {
+  oneof msg {
+    AcquisitionHeader header = 1;
+    ChannelMeta channel = 2;
+    ChannelChunk chunk = 3;
+  }
+}
+ 
+message Ack { string id = 1; string message = 2; } 
+ 
+service DataIngest {
+  rpc UploadStream (stream StreamMsg) returns (Ack);
+}

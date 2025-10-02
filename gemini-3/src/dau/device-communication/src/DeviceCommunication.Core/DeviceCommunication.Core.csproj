@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Google.Protobuf" Version="3.25.1" />
+		<!-- Grpc.Tools is needed for compiling protos -->
+		<PackageReference Include="Grpc.Tools" Version="2.66.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
+		<!-- Grpc.Core.Api contains base types for gRPC, useful when generating server stubs in a library -->
+		<PackageReference Include="Grpc.Core.Api" Version="2.66.0" /> <!-- Or your current version -->
+	</ItemGroup>
+	<ItemGroup>
+		<Protobuf Include="Protos\calibration.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\common.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\data.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\device.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\firmware.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\health.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\main.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\nanopb.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated" GrpcServices="None" Access="Public" ProtoRoot="Protos" />
+
+		<Protobuf Include="Protos\simple_device_control.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated\Grpc" GrpcServices="Server" Access="Public" ProtoRoot="Protos" />
+		<Protobuf Include="Protos\acquisition.proto" CompileOutputs="true" OutputDir="%(RelativeDir)Generated\Grpc" GrpcServices="Server" Access="Public" ProtoRoot="Protos" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,23 @@
+apiVersion: k3s.io/v1alpha1
+kind: NodeConfig
+metadata:
+  name: k3s-worker
+spec:
+  role: worker
+  controlPlaneUrl: "https://control-plane:6443"
+  token: "${NODE_TOKEN}"  # Set this securely
+  kubelet:
+    maxPods: 110
+    systemReserved:
+      cpu: "100m"
+      memory: "100Mi"
+    evictionHard:
+      memory.available: "100Mi"
+      nodefs.available: "10%"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"

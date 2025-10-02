@@ -1,0 +1,100 @@
+# --- Keyring component manifest + config (mounted by the StatefulSet below)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-keyring-config
+  namespace: db
+data:
+
+  mysqld.my: |
+    { "components": "file://component_keyring_file" }
+
+  component_keyring_file.cnf: |
+    {
+      "read_local_config": false,
+      "path": "/var/lib/mysql-keyring/component_keyring_file",
+      "read_only": false
+    }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: db
+spec:
+  serviceName: "mysql"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      securityContext:
+        fsGroup: 999
+
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - name: mysql
+              containerPort: 3306
+
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: rootpassword
+
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+              subPath: data
+
+            - name: mysql-config
+              mountPath: /etc/mysql/my.cnf
+              subPath: my.cnf
+
+            - name: mysql-keyring-config
+              mountPath: /usr/sbin/mysqld.my
+              subPath: mysqld.my
+              readOnly: true
+
+            - name: mysql-keyring-config
+              mountPath: /usr/lib64/mysql/plugin/component_keyring_file.cnf
+              subPath: component_keyring_file.cnf
+              readOnly: true
+
+            - name: mysql-keyring
+              mountPath: /var/lib/mysql-keyring
+
+      volumes:
+        - name: mysql-config
+          configMap:
+            name: mysql-config
+
+        - name: mysql-keyring-config
+          configMap:
+            name: mysql-keyring-config
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 10Gi
+
+    - metadata:
+        name: mysql-keyring
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 1Gi

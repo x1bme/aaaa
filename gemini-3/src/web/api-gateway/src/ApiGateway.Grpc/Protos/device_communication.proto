@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option csharp_namespace = "ApiGateway.Grpc.DeviceCommunication";
+
+package device.communication;
+
+service DeviceCommunicationService {
+  rpc ConnectDevice (ConnectDeviceRequest) returns (ConnectDeviceResponse);
+  rpc GetDeviceStatus (DeviceStatusRequest) returns (DeviceStatusResponse);
+}
+
+message ConnectDeviceRequest {
+  string device_id = 1;
+  string connection_params = 2;
+}
+
+message ConnectDeviceResponse {
+  bool success = 1;
+  string message = 2;
+  string connection_id = 3;
+}
+
+message DeviceStatusRequest {
+  string device_id = 1;
+}
+
+message DeviceStatusResponse {
+  enum Status {
+    UNKNOWN = 0;
+    CONNECTED = 1;
+    DISCONNECTED = 2;
+    ERROR = 3;
+  }
+  Status status = 1;
+  string message = 2;
+}

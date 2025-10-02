@@ -1,0 +1,7 @@
+obj
+bin
+*.dll
+Data
+Archived-data
+DisassembledFiles
+temp

@@ -1,0 +1,34 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj files into their subfolders using full paths from the repo root
+COPY src/database/ArchiverService/ArchiverService.csproj ./database/ArchiverService/
+COPY src/database/DataAccess/DataAccess.csproj ./database/DataAccess/
+
+# Restore only ArchiverService (it pulls in DataAccess)
+RUN dotnet restore database/ArchiverService/ArchiverService.csproj
+
+# Copy the rest of the source code
+COPY src ./
+
+# Publish the application from the correct directory
+WORKDIR /src/database/ArchiverService
+RUN dotnet publish ArchiverService.csproj -c Release -o /app/publish
+
+# Runtime image - using aspnet instead of runtime since this is a web application
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Add diagnostic tools
+RUN apt-get update && apt-get install -y curl wget iputils-ping && rm -rf /var/lib/apt/lists/*
+
+# Install grpc_health_probe
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.16 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
+# Set explicit URLs to listen on all interfaces
+#ENV ASPNETCORE_URLS=http://+:80
+
+ENTRYPOINT ["dotnet", "ArchiverService.dll"]

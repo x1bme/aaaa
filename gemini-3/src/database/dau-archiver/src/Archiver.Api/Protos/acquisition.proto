@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package archiver.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Archiver.Api.Grpc";
+
+service ArchiverService {
+  rpc ArchiveDataset(stream ArchiveRequest) returns (ArchiveResponse);
+}
+
+message ArchiveRequest {
+  oneof payload {
+    DatasetMetadata metadata = 1;
+    SignalDataChunk data_chunk = 2;
+  }
+}
+
+message DatasetMetadata {
+  string dataset_id = 1;
+  string device_id = 2;
+  uint32 sample_rate_hz = 3;
+  uint32 num_channels = 4;
+  google.protobuf.Timestamp start_time_utc = 5;
+}
+
+message SignalDataChunk {
+  uint32 sequence_number = 1;
+  repeated sint32 raw_adc_values = 2;
+}
+
+message ArchiveResponse {
+  string dataset_id = 1;
+  bool success = 2;
+  int64 chunks_received = 3;
+  int64 samples_received = 4;
+  string message = 5;
+}

@@ -1,0 +1,496 @@
+syntax = "proto3";
+
+package simple_device_control_api;
+option csharp_namespace = "DeviceCommunication.Core.Grpc.SimpleControl";
+
+// For commands that return a generic success/failure
+message GenericDeviceResponse {
+	bool success = 1;
+	string message = 2;
+	// Optional: Echo the original status code from the device if available
+	// string device_status_code = 3; // e.g., "STATUS_OK", "STATUS_BUSY"
+}
+
+message AdcChannelCalibrationParamsGrpc {
+	uint32 channel_id = 1;
+	float offset = 2;
+	float gain = 3;
+	uint64 last_updated_ms = 4;
+	uint64 calibration_expires_ms = 5;
+	float temperature_at_cal_celsius = 6;
+}
+
+message AlertInfoGrpc { // DTO for device.AlertInfo
+	string code = 1; // Mapped from device.ErrorCode enum
+	string severity = 2; // Mapped from device.SeverityLevel enum
+	string description = 3;
+	uint64 timestamp_ms = 4;
+}
+
+// --- Firmware DTOs ---
+message FirmwareBlockGrpc { // If we were to transfer firmware blocks via gRPC (less likely for this model)
+	uint32 block_sequence_number = 1;
+	bytes data = 2;
+}
+
+// --- Data DTOs ---
+message ChannelConfigGrpc {
+	uint32 channel_id = 1;
+	bool enabled = 2;
+	float initial_pga_gain = 3;
+	float trigger_threshold_low = 4;
+	float trigger_threshold_high = 5;
+	bool report_event_on_threshold = 6;
+}
+
+message SignalDataInfoGrpc { // DTO for device.SignalDataInfo
+	uint32 dataset_id = 1;
+	uint64 start_time_ns = 2;
+	uint64 end_time_ns = 3;
+	uint64 trigger_timestamp_ns = 4;
+	uint32 pre_trigger_duration_seconds = 5;
+	uint32 post_trigger_duration_seconds = 6;
+	uint32 sample_rate_hz = 7;
+	uint32 num_channels = 8;
+	uint32 approximate_size_kb = 9;
+	string capture_status = 10; // Mapped from device.CaptureStatus enum
+}
+
+message StorageInfoGrpc { // DTO for device.StorageInfo
+	uint32 total_storage_kb = 1;
+	uint32 used_storage_kb = 2;
+	uint32 available_storage_kb = 3;
+	uint32 total_datasets = 4;
+	uint64 oldest_dataset_start_time_ns = 5;
+	uint64 newest_dataset_start_time_ns = 6;
+}
+
+// --- Device Management DTOs ---
+message NetworkSettingsGrpc { // DTO for device.NetworkSettings
+	bool use_dhcp = 1;
+	string static_ip_address = 2;
+	string subnet_mask = 3;
+	string gateway = 4;
+	string primary_dns = 5;
+	string secondary_dns = 6;
+}
+
+message CertificateInfoGrpc { // DTO for device.CertificateInfo
+	bytes certificate_der = 1;
+	string subject_name = 2;
+	string issuer_name = 3;
+	uint64 valid_not_before_ms = 4;
+	uint64 valid_not_after_ms = 5;
+}
+
+// --- ApiGateway, Khalid's message types, first iteration (to refine later) ---
+enum StatusCode {
+	STATUS_OK = 0;             
+	STATUS_ERROR = 1;          
+	STATUS_INVALID_PARAM = 2;  
+	STATUS_UNAUTHORIZED = 3;   
+	STATUS_UNAVAILABLE = 4;    
+	STATUS_BUSY = 5;           
+	STATUS_TIMEOUT = 6;        
+}
+
+// service ApiGatewayService { <<<<<<<<<<< I'll have a separate service for this later, right now I'll just put in existing services
+// 	rpc GetAllDaus(DauList) returns (DauObjects);
+// 	rpc UpdateFirmware(UpdatePayload) returns (ResponseBase);
+// 	rpc ConfigureDau(Configuration) returns (ResponseBase);
+// }
+
+message Dau {
+	string device_id = 1;
+	uint64 last_heartbeat = 2;
+	bool is_operational = 3;
+	string static_ip_address = 4;
+	string primary_dns = 5;
+	string secondary_dns = 6;
+	string subnet_mask = 7;
+	string gateway = 8;
+}
+
+message Configuration {
+	Dau dau = 1;
+}
+
+message DauList {
+	repeated string device_id = 1;
+}
+
+message DauObjects {
+	repeated Dau dau = 1;
+}
+
+message UpdatePayload {
+	string device_id = 1;
+	string version = 2;
+	string checksum = 3;
+	bytes firmware_data = 4;
+	//string firmware_type = 5;
+	uint64 timestamp = 6;
+	FirmwareImageTypeGrpc type = 7;
+}
+
+message ResponseBase {
+	StatusCode status = 1; 
+	string message = 2;
+}
+
+// ===================== SERVICE DEFINITION =====================
+service SimpleDeviceController {
+	// --- Health ---
+	rpc SendDeviceHeartbeat (SendDeviceHeartbeatRequest) returns (SendDeviceHeartbeatResponse);
+	rpc GetDeviceHealthStatus(GetDeviceHealthStatusRequest) returns (GetDeviceHealthStatusResponse);
+	rpc GetDeviceErrorLog(GetDeviceErrorLogRequest) returns (GetDeviceErrorLogResponse);
+	rpc ClearDeviceErrorLog(ClearDeviceErrorLogRequest) returns (GenericDeviceResponse);
+
+	// --- Firmware ---
+	rpc GetDeviceFirmwareInfo(GetDeviceFirmwareInfoRequest) returns (GetDeviceFirmwareInfoResponse);
+	rpc PrepareFirmwareUpdate(PrepareFirmwareUpdateRequest) returns (PrepareFirmwareUpdateResponse);
+	// For Transfer, Verify, Apply, Abort - similar request/response or a generic "ExecuteFirmwareUpdateStep"
+	// For simplicity, let's assume a generic one for now.
+	rpc ExecuteFirmwareUpdateOperation(ExecuteFirmwareUpdateOperationRequest) returns (ExecuteFirmwareUpdateOperationResponse);
+
+
+	// --- Calibration ---
+	rpc ReadDeviceCalibrationParams(ReadDeviceCalibrationParamsRequest) returns (ReadDeviceCalibrationParamsResponse);
+	rpc StartDeviceCalibrationProcedure(StartDeviceCalibrationProcedureRequest) returns (StartDeviceCalibrationProcedureResponse);
+	rpc GetDeviceCalibrationStatus(GetDeviceCalibrationStatusRequest) returns (GetDeviceCalibrationStatusResponse);
+
+	// --- Data ---
+	rpc ConfigureDeviceDataCollection(ConfigureDeviceDataCollectionRequest) returns (GenericDeviceResponse);
+	rpc GetDeviceStorageInfo(GetDeviceStorageInfoRequest) returns (GetDeviceStorageInfoResponse);
+	rpc ListDeviceDatasets(ListDeviceDatasetsRequest) returns (ListDeviceDatasetsResponse);
+	// GetData might involve streaming or large payloads, for gRPC a request to "prepare data" or get metadata is common.
+	// Let's assume this GetData is for initiating a download, device will then send chunks via TCP,
+	// and gRPC response confirms initiation or provides some metadata.
+	rpc GetDeviceDataset(GetDeviceDatasetRequest) returns (GetDeviceDatasetResponse); // Maybe returns total chunks, first chunk seq etc.
+	rpc DeleteDeviceDatasets(DeleteDeviceDatasetsRequest) returns (DeleteDeviceDatasetsResponse);
+	rpc ServerInitiatedStartCapture(ServerInitiatedStartCaptureRequest) returns (ServerInitiatedStartCaptureResponse);
+
+
+	// --- Device Management ---
+	rpc SetDeviceAssignedName(SetDeviceAssignedNameRequest) returns (GenericDeviceResponse);
+	rpc GetDeviceNetworkConfig(GetDeviceNetworkConfigRequest) returns (GetDeviceNetworkConfigResponse);
+	rpc SetDeviceNetworkConfig(SetDeviceNetworkConfigRequest) returns (GenericDeviceResponse);
+	rpc GetDeviceCertificateInfo(GetDeviceCertificateInfoRequest) returns (GetDeviceCertificateInfoResponse);
+	rpc GenerateDeviceCSR(GenerateDeviceCSRRequest) returns (GenerateDeviceCSRResponse);
+	rpc UpdateDeviceCertificate(UpdateDeviceCertificateRequest) returns (GenericDeviceResponse);
+
+	rpc RebootDevice(RebootDeviceRequest) returns (GenericDeviceResponse);
+	// Other control actions (Reset, SetPowerMode, SetSafeMode) would follow a similar pattern
+	rpc FactoryResetDevice(FactoryResetDeviceRequest) returns (GenericDeviceResponse);
+	rpc SyncDeviceTime(SyncDeviceTimeRequest) returns (SyncDeviceTimeResponse);
+
+	// ApiGateway, to be separated off into its own service later, TODO <<<<<<<<<<<<<<<
+	rpc GetAllDaus(DauList) returns (DauObjects);
+	rpc UpdateFirmware(UpdatePayload) returns (ResponseBase);
+	rpc ConfigureDau(Configuration) returns (ResponseBase);
+}
+
+// ===================== MESSAGE DEFINITIONS =====================
+
+// --- Health Messages ---
+message SendDeviceHeartbeatRequest { string device_id = 1; }
+message SendDeviceHeartbeatResponse {
+	bool success = 1;
+	string message = 2;
+	uint64 device_timestamp_ms = 3;
+}
+
+message GetDeviceHealthStatusRequest { string device_id = 1; }
+message GetDeviceHealthStatusResponse {
+	bool success = 1;
+	string message = 2;
+	bool is_operational = 3;
+	string system_state = 4;
+	float temperature_celsius = 5;
+	uint64 uptime_seconds = 6;
+	// Add more relevant fields from device.GetCurrentStatusResponse
+	float cpu_usage_percent = 7;
+	bool ptp_locked = 8;
+	string last_reset_reason = 9;
+}
+
+message GetDeviceErrorLogRequest {
+	string device_id = 1;
+	uint32 page_token = 2; // For pagination
+}
+message GetDeviceErrorLogResponse {
+	bool success = 1;
+	string message = 2;
+	repeated AlertInfoGrpc error_log_entries = 3;
+	uint32 next_page_token = 4;
+	uint32 total_matching_entries = 5;
+}
+
+message ClearDeviceErrorLogRequest {
+	string device_id = 1;
+	string confirmation_code = 2;
+}
+
+// --- Firmware Messages ---
+message GetDeviceFirmwareInfoRequest { string device_id = 1; }
+message GetDeviceFirmwareInfoResponse {
+	bool success = 1;
+	string message = 2;
+	string version = 3;
+	string build_date = 4;
+	string build_hash = 5;
+	bool secure_boot_enabled = 6;
+	string current_image_slot = 7;
+}
+
+message PrepareFirmwareUpdateRequest {
+	string device_id = 1;
+	uint32 firmware_size_bytes = 2;
+	uint32 block_size_preference = 5;
+	FirmwareImageTypeGrpc type = 6;
+}
+message PrepareFirmwareUpdateResponse {
+	bool success = 1;
+	string message = 2;
+	// from device.FirmwarePrepareResponsePayload
+	bool ready_to_receive = 3;
+	uint32 max_block_size_accepted = 4;
+	uint32 estimated_storage_time_seconds = 5;
+}
+
+enum FirmwareImageTypeGrpc {
+	FIRM_IMG_TYPE_GRPC_UNSPECIFIED = 0;
+	FIRM_IMG_TYPE_GRPC_STM32 = 1;
+	FIRM_IMG_TYPE_GRPC_ESP32 = 2;
+}
+
+enum FirmwareUpdateGrpcOperation {
+	FW_OP_GRPC_UNSPECIFIED = 0;
+	// TRANSFER = 1; // Transferring blocks via gRPC is less ideal for large files if TCP path exists
+	FW_OP_GRPC_VERIFY = 2;
+	FW_OP_GRPC_APPLY = 3;
+	FW_OP_GRPC_ABORT = 4;
+}
+message ExecuteFirmwareUpdateOperationRequest {
+	string device_id = 1;
+	FirmwareUpdateGrpcOperation operation = 2;
+	FirmwareImageTypeGrpc type = 3;
+	uint32 total_blocks_sent_for_verify = 10;
+	uint32 full_image_crc32_for_verify = 11;
+	uint32 reboot_delay_seconds_for_apply = 20;
+	string reason_for_abort = 30;
+}
+
+enum FirmwareVerificationResultGrpc {
+	FIRM_VER_GRPC_UNSPECIFIED = 0;
+	FIRM_VER_GRPC_OK = 1;
+	FIRM_VER_GRPC_AUTH_FAILED = 2;
+	FIRM_VER_GRPC_HEADER_INTEGRITY_FAILED = 3;
+	FIRM_VER_GRPC_IMAGE_INTEGRITY_FAILED = 4;
+}
+
+message ExecuteFirmwareUpdateOperationResponse {
+	bool success = 1;
+	string message = 2;
+	// Specific success flags from device responses
+	bool verification_passed = 3; // For VERIFY
+	bool application_scheduled = 4; // For APPLY
+	bool abort_confirmed = 5; // For ABORT
+
+	FirmwareVerificationResultGrpc verification_result = 6;
+	string verified_firmware_version = 7;
+}
+
+
+// --- Calibration Messages ---
+message ReadDeviceCalibrationParamsRequest {
+	string device_id = 1;
+	repeated uint32 channel_ids = 2;
+}
+message ReadDeviceCalibrationParamsResponse {
+	bool success = 1;
+	string message = 2;
+	repeated AdcChannelCalibrationParamsGrpc parameters = 3;
+}
+
+message StartDeviceCalibrationProcedureRequest {
+	string device_id = 1;
+	repeated uint32 channel_ids = 2;
+	bool force_calibration = 3;
+}
+message StartDeviceCalibrationProcedureResponse {
+	bool success = 1;
+	string message = 2;
+	// from device.StartCalibrationProcedureResponse
+	bool procedure_started = 3;
+	uint32 estimated_duration_seconds = 4;
+}
+
+message GetDeviceCalibrationStatusRequest {
+	string device_id = 1;
+	// Potentially channel_ids if status can be per-channel
+}
+message GetDeviceCalibrationStatusResponse {
+	bool success = 1;
+	string message = 2;
+	// from device.GetCalibrationStatusResponse
+	bool is_calibrating = 3;
+	uint32 progress_percent = 4;
+	uint32 time_remaining_seconds = 5;
+	repeated uint32 channels_in_progress = 6;
+}
+
+// --- Data Messages ---
+message ConfigureDeviceDataCollectionRequest {
+	string device_id = 1;
+	uint32 sampling_rate_hz = 2;
+	repeated ChannelConfigGrpc channel_configs = 3;
+	uint32 total_storage_allocation_kb = 4;
+	bool clear_existing_datasets_on_config = 5;
+	uint32 max_concurrent_triggered_datasets = 6;
+	uint32 pre_trigger_duration_seconds = 7;
+	uint32 post_trigger_duration_seconds = 8;
+	uint32 total_capture_duration_minutes = 9;
+}
+// Uses GenericDeviceResponse
+
+message GetDeviceStorageInfoRequest { string device_id = 1; }
+message GetDeviceStorageInfoResponse {
+	bool success = 1;
+	string message = 2;
+	StorageInfoGrpc storage_info = 3;
+}
+
+message ListDeviceDatasetsRequest {
+	string device_id = 1;
+	uint64 start_time_filter_ns = 2;
+	uint64 end_time_filter_ns = 3;
+	uint32 max_results = 4;
+	uint32 page_token = 5;
+}
+message ListDeviceDatasetsResponse {
+	bool success = 1;
+	string message = 2;
+	repeated SignalDataInfoGrpc datasets = 3;
+	uint32 next_page_token = 4;
+	uint32 total_matching_datasets = 5;
+}
+
+message GetDeviceDatasetRequest { // Request to initiate data transfer or get info
+	string device_id = 1;
+	uint32 dataset_id = 2;
+	uint32 start_chunk_sequence_number = 3; // For resuming if applicable
+	uint32 max_chunks_in_response_hint = 4; // If gRPC were to send chunks
+}
+message GetDeviceDatasetResponse { // Confirms initiation or provides metadata
+	bool success = 1;
+	string message = 2;
+	uint32 dataset_id = 3;
+	uint32 total_chunks_in_dataset = 4; // Info about the dataset
+					    // Potentially first few chunks if small, or confirmation that TCP transfer will begin
+}
+
+message DeleteDeviceDatasetsRequest {
+	string device_id = 1;
+	repeated uint32 dataset_ids = 2;
+	bool delete_all_datasets = 3;
+	string confirmation_code = 4;
+}
+message DeleteDeviceDatasetsResponse {
+	bool success = 1;
+	string message = 2;
+	repeated uint32 deleted_dataset_ids = 3;
+	uint32 not_deleted_count = 4;
+	uint32 freed_storage_kb = 5;
+}
+
+message ServerInitiatedStartCaptureRequest {
+	string device_id = 1;
+	uint64 trigger_timestamp_ns = 2; // The trigger time server wants captured
+}
+message ServerInitiatedStartCaptureResponse {
+	bool success = 1;
+	string message = 2;
+	uint32 assigned_dataset_id = 3;
+	bool capture_initiated = 4;
+	uint32 estimated_capture_time_seconds = 5;
+}
+
+
+// --- Device Management Messages ---
+message SetDeviceAssignedNameRequest {
+	string device_id = 1;
+	string assigned_name = 2;
+}
+// Uses GenericDeviceResponse
+
+message GetDeviceNetworkConfigRequest { string device_id = 1; }
+message GetDeviceNetworkConfigResponse {
+	bool success = 1;
+	string message = 2;
+	NetworkSettingsGrpc current_settings = 3;
+}
+
+message SetDeviceNetworkConfigRequest {
+	string device_id = 1;
+	NetworkSettingsGrpc settings = 2;
+}
+// Uses GenericDeviceResponse
+
+message GetDeviceCertificateInfoRequest { string device_id = 1; }
+message GetDeviceCertificateInfoResponse {
+	bool success = 1;
+	string message = 2;
+	CertificateInfoGrpc tls_client_cert_info = 3;
+	// Potentially repeated if multiple certs (e.g. CA chain)
+}
+
+message GenerateDeviceCSRRequest {
+	string device_id = 1;
+	// Potentially CSR parameters: key type, subject details
+}
+message GenerateDeviceCSRResponse {
+	bool success = 1;
+	string message = 2;
+	bytes csr_der = 3; // CSR in binary DER format
+}
+
+message UpdateDeviceCertificateRequest {
+	string device_id = 1;
+	bytes new_certificate_der = 2;
+	// Potentially repeated bytes for certificate_chain_der
+}
+// Uses GenericDeviceResponse
+
+message RebootDeviceRequest {
+	string device_id = 1;
+	bool force_immediate = 2;
+	uint32 delay_seconds = 3;
+}
+// Uses GenericDeviceResponse
+
+message FactoryResetDeviceRequest {
+	string device_id = 1;
+	string confirmation_code = 2;
+	bool preserve_device_id = 3;
+	bool preserve_network_config = 4;
+	bool preserve_calibration = 5;
+}
+// Uses GenericDeviceResponse
+
+message SyncDeviceTimeRequest {
+	string device_id = 1;
+	// Server's current time, if device should use it for coarse sync
+	uint64 server_timestamp_ms_for_sync = 2;
+}
+message SyncDeviceTimeResponse {
+	bool success = 1;
+	string message = 2;
+	// From device.SyncTimeResponse
+	uint64 device_time_before_sync_ms = 3;
+	uint64 device_time_after_sync_ms = 4;
+	int64 offset_applied_ms = 5;
+	string ptp_status = 6; // Mapped from device.PtpSyncStatus enum
+	int64 ptp_offset_nanoseconds = 7;
+	string ptp_master_id = 8;
+}

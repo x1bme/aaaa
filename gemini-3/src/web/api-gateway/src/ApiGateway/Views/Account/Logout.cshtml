@@ -1,0 +1,11 @@
+@* Views/Account/Logout.cshtml *@
+@{
+    ViewData["Title"] = "Logout";
+}
+<h2>Logout</h2>
+<p>Are you sure you want to Logout?</p>
+<form asp-action="LogoutConfirmed" method="post">
+    @Html.AntiForgeryToken()
+    <button class="btn btn-dark" type="submit">Logout</button>
+    <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

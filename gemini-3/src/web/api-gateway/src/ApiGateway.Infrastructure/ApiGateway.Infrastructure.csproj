@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.25.1" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.59.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.59.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ApiGateway.Core\ApiGateway.Core.csproj" />
+    <!-- Add references to the DAU service Grpc projects -->
+    <ProjectReference Include="..\..\..\dau\device-communication\src\DeviceCommunication.Grpc\DeviceCommunication.Grpc.csproj" />
+    <ProjectReference Include="..\..\..\dau\device-proxy\src\DeviceProxy.Grpc\DeviceProxy.Grpc.csproj" />
+    <ProjectReference Include="..\ApiGateway.Grpc\ApiGateway.Grpc.csproj" />
+  </ItemGroup>
+
+</Project>
