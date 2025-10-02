@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-alloy
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana-alloy
+  template:
+    metadata:
+      labels:
+        app: grafana-alloy
+    spec:
+      containers:
+      - name: grafana-alloy
+        image: localhost:5000/grafana-alloy-custom:latest
+        args:
+          - run
+          - /etc/alloy/alloy.yaml
+        ports:
+        - containerPort: 12345 # Replace with actual port if needed
+        volumeMounts:
+        - name: alloy-config
+          mountPath: /etc/alloy
+      volumes:
+      - name: alloy-config
+        configMap:
+          name: alloy-config

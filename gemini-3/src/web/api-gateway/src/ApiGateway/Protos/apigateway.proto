@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package apigateway;
+
+option csharp_namespace = "ApiGateway.GrpcClient";
+
+enum StatusCode {
+    STATUS_OK = 0;             
+    STATUS_ERROR = 1;          
+    STATUS_INVALID_PARAM = 2;  
+    STATUS_UNAUTHORIZED = 3;   
+    STATUS_UNAVAILABLE = 4;    
+    STATUS_BUSY = 5;           
+    STATUS_TIMEOUT = 6;        
+}
+
+service ApiGatewayService {
+    rpc GetAllDaus(DauList) returns (DauObjects);
+    rpc UpdateFirmware(UpdatePayload) returns (ResponseBase); 
+    rpc ConfigureDau(Configuration) returns (ResponseBase);
+}
+
+message Dau {
+    string device_id = 1;
+    uint64 last_heartbeat = 2;
+    bool is_operational = 3;
+    string static_ip_address = 4;
+    string primary_dns = 5;
+    string secondary_dns = 6;
+    string subnet_mask = 7;
+    string gateway = 8;
+}
+
+message Configuration {
+    Dau dau = 1;
+}
+
+message DauList {
+    repeated string device_id = 1;
+}
+
+message DauObjects {
+    repeated Dau daus = 1; 
+}
+
+message UpdatePayload {
+    string device_id = 1;
+    string version = 2;
+    string checksum = 3;
+    bytes firmware_data = 4;
+    string firmware_type = 5;
+    uint64 timestamp = 6;
+}
+
+message ResponseBase {
+    StatusCode status = 1; 
+    string message = 2;
+}

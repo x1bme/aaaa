@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option csharp_namespace = "ApiGateway.Grpc.DeviceProxy";
+
+package device.proxy;
+
+service DeviceProxyService {
+  rpc RelayMessage (stream RelayMessageRequest) returns (stream RelayMessageResponse);
+}
+
+message RelayMessageRequest {
+  string source_dau_id = 1;
+  string target_dau_id = 2;
+  bytes message_data = 3;
+  string message_id = 4;
+}
+
+message RelayMessageResponse {
+  bool success = 1;
+  string message = 2;
+  string message_id = 3;
+}
+
+message {
+        bool heartbeat = 1;
+        bytes data = 2;
+}

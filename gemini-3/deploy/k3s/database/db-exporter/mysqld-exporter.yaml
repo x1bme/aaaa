@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysqld-exporter
+  namespace: monitoring
+  labels:
+    app: mysqld-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysqld-exporter
+  template:
+    metadata:
+      labels:
+        app: mysqld-exporter
+    spec:
+      containers:
+      - name: mysqld-exporter
+        image: prom/mysqld-exporter:v0.15.1
+        args:
+          - "--config.my-cnf=/etc/mysql-exporter/.my.cnf"
+        volumeMounts:
+        - name: mycnf
+          mountPath: /etc/mysql-exporter
+        ports:
+        - containerPort: 9104
+      volumes:
+      - name: mycnf
+        secret:
+          secretName: mysql-exporter-mycnf

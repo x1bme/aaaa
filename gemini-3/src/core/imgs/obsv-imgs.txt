@@ -1,0 +1,27 @@
+Prometheus (v 3.4.0)
+crit-0
+high-0
+
+Grafana:12.0.1
+crit-0
+high-0
+
+node-exporter:(custom)
+crit-0
+high-0
+
+kube stat metrics:2.15.0 (now custom)
+crit-0
+high-2
+
+grafana loki:v3.5.1
+crit-0
+high-0
+
+grafana alloy custom
+crit-0
+high-0
+
+grafana tempo custom
+crit-0
+high-0

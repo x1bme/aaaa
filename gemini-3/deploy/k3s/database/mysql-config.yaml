@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: db
+data:
+  my.cnf: |
+    [mysqld]
+    # Character set and authentication
+    character-set-server=utf8mb4
+    collation-server=utf8mb4_unicode_ci
+    default-authentication-plugin=mysql_native_password
+
+    table_encryption_privilege_check=ON
+    default_table_encryption=ON
+    innodb_redo_log_encrypt=ON
+    innodb_undo_log_encrypt=ON
+    plugin_dir=/usr/lib64/mysql/plugin
+    log_error_verbosity=3
+
+    [mysql]
+    database=LoomDB
+
+    [client]
+    user=loom-user
+    password=loom-password
+    host=mysql.default.svc.cluster.local
+    port=3306

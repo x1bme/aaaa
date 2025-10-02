@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-connection-checker
+  namespace: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-connection-checker
+  template:
+    metadata:
+      labels:
+        app: mysql-connection-checker
+    spec:
+      containers:
+      - name: checker
+        image: mysql:8.0
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            while true; do
+              mysqladmin ping -h mysql -u"$DBUSER" -p"$DBPASS" && echo "Connected" || echo "Not connected";
+              sleep 10;
+            done
+        env:
+        - name: DBUSER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: user
+        - name: DBPASS
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password

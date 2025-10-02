@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- point at your shared DataAccess EF/context/models -->
+    <ProjectReference Include="..\DataAccess\DataAccess.csproj" />
+  </ItemGroup>
+
+  <!-- drop the old CLI bits and the local Archive model -->
+  <ItemGroup>
+    <Compile Remove="Program.cs" />
+    <Compile Remove="Models\Archive.cs" />
+    <Compile Remove="Data\ArchiverDbContext.cs" />
+    <None Remove="appsettings.json" />
+    <PackageReference Remove="Microsoft.Extensions.Hosting" />
+    <PackageReference Remove="Microsoft.Extensions.Configuration.*" />
+  </ItemGroup>
+
+</Project>

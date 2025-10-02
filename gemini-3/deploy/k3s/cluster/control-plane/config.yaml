@@ -1,0 +1,24 @@
+apiVersion: k3s.io/v1alpha1
+kind: ControlPlaneConfig
+metadata:
+  name: k3s-control-plane
+spec:
+  kubernetesVersion: v1.27.1-k3s1
+  clusterName: cnuclear-cluster
+  tlsSans:
+    - "cluster.local"
+  datastore:
+    type: mysql
+    connectionString: "mysql://username:password@tcp(mysql:3306)/kubernetes"
+  network:
+    clusterCIDR: "10.42.0.0/16"
+    serviceCIDR: "10.43.0.0/16"
+  api:
+    advertiseAddress: "192.168.1.100"  # our control plane IP
+    bindAddress: "0.0.0.0"
+    extraArgs:
+      - "--feature-gates=HPAScaleToZero=true"
+  etcd:
+    enabled: true
+    snapshotRetention: 5
+    backupSchedule: "0 */12 * * *"

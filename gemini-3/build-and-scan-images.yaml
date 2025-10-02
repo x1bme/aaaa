@@ -1,0 +1,145 @@
+variables:
+  maxParallelJobs: 1 # the limit by the free account 
+
+trigger:
+- none # This pipeline should be run manually or triggered by the find-dockerfiles pipeline
+
+# To trigger this automatically after the discovery pipeline, uncomment the following lines:
+resources:
+  pipelines:
+    - pipeline: findDockerfiles
+      source: find-dockerfiles
+      trigger:
+        branches:
+          include:
+            - azure-pipelines-v2
+
+parameters:
+- name: failOnSeverity
+  type: string
+  default: 'critical'
+  values:
+  - critical
+  - high
+
+stages:
+- stage: PrepareBuild
+  displayName: Download and Prepare Build Matrix
+  jobs:
+    - job: DownloadMatrix
+      displayName: Download Matrix Artifact
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - download: findDockerfiles
+          artifact: dockerfile-matrix
+          displayName: 'Download Dockerfile Matrix'
+
+        - script: |
+            echo "Environment Variables:"
+            printenv | sort
+          displayName: 'Debug: Print Environment Variables'
+
+        - script: |
+            echo "Current Directory:"
+            pwd
+            echo "Directory Tree from Workspace Root:"
+            ls -R $(Pipeline.Workspace)
+          displayName: 'Debug: Show Workspace Directory Tree'
+
+        - script: |
+            echo "Checking if matrix.json exists:"
+            if [ -f "$(Pipeline.Workspace)/findDockerfiles/dockerfile-matrix/matrix.json" ]; then
+              echo "matrix.json found."
+            else
+              echo "matrix.json NOT found!"
+              exit 1
+            fi
+          displayName: 'Debug: Validate matrix.json Presence'
+
+        - script: |
+            echo "Listing contents of artifact directory:"
+            ls -R $(Pipeline.Workspace)/findDockerfiles/dockerfile-matrix
+          displayName: 'Debug: List Downloaded Artifact Contents'
+
+        - script: |
+            echo "Contents of matrix.json:"
+            cat $(Pipeline.Workspace)/findDockerfiles/dockerfile-matrix/matrix.json
+          displayName: 'Debug: Show matrix.json'
+
+        - bash: |
+            MATRIX_JSON=$(jq -c . $(Pipeline.Workspace)/findDockerfiles/dockerfile-matrix/matrix.json)
+            echo "##vso[task.setVariable variable=matrix;isOutput=true]$MATRIX_JSON"
+          name: SetMatrixVariable
+          displayName: 'Set Matrix as Output Variable (Compact JSON)'
+
+- stage: BuildAndScan
+  displayName: Build and Scan Images
+  dependsOn: PrepareBuild
+  jobs:
+  - job: BuildAndScanImage
+    displayName: 'Build and Scan'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      matrix: $[ stageDependencies.PrepareBuild.DownloadMatrix.outputs['SetMatrixVariable.matrix'] ]
+      maxParallel: $[ variables.maxParallelJobs ]
+    steps:
+    - checkout: self
+
+    - task: Docker@2
+      displayName: 'Login to Docker Hub'
+      inputs:
+        command: 'login'
+        containerRegistry: 'DockerHubConnection'
+
+    - task: Docker@2
+      displayName: 'Build: $(imageName)'
+      inputs:
+        command: build
+        repository: 'scout-temp/$(imageName)'
+        dockerfile: '$(dockerfilePath)'
+        buildContext: '$(System.DefaultWorkingDirectory)'
+        tags: 'pr-scan'
+
+    - script: |
+        set -e
+        echo "Installing Trivy..."
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+        echo "Trivy version:"
+        trivy --version
+      displayName: 'Install Trivy'
+
+    - script: |
+        set -e
+        IMAGE_TO_SCAN="scout-temp/$(imageName):pr-scan"
+        
+        echo "Scanning image: ${IMAGE_TO_SCAN}"
+        
+        echo "--- Full Trivy Report for $(imageName) ---"
+        # Display the standard table report in the log for easy manual review.
+        # We ignore the exit code here because we just want to see the report.
+        trivy image --no-progress "${IMAGE_TO_SCAN}" || true
+        echo "-----------------------------------------"
+
+        # This section uses Trivy's built-in exit code functionality to enforce policy.
+        # It is much simpler than parsing JSON.
+        
+        echo "Enforcing policy for severity level: ${{ parameters.failOnSeverity }}"
+        
+        SEVERITIES_TO_FAIL_ON=""
+        if [ "${{ parameters.failOnSeverity }}" = "high" ]; then
+          SEVERITIES_TO_FAIL_ON="CRITICAL,HIGH"
+        else
+          SEVERITIES_TO_FAIL_ON="CRITICAL"
+        fi
+
+        echo "Policy enforcement scan is in debug mode and will not fail the build."
+        echo "The command that would run is: trivy image --exit-code 1 --severity ${SEVERITIES_TO_FAIL_ON} --no-progress ${IMAGE_TO_SCAN}"
+
+        # The following command is commented out for debugging. 
+        # To enable build failure, uncomment the line below.
+        # trivy image --exit-code 1 --severity "$SEVERITIES_TO_FAIL_ON" --no-progress "${IMAGE_TO_SCAN}"
+        
+        echo "Scan complete. Build will not fail due to debug mode."
+      displayName: 'Scan Image with Trivy and Enforce Policy'

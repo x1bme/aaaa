@@ -1,0 +1,6 @@
+@ArchiverService_HostAddress = http://localhost:5027
+
+GET {{ArchiverService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,13 @@
+{
+  "tasks": [
+    {
+      "type": "dotnet",
+      "label": "build",
+      "command": "build",
+      "args": [
+        "${workspaceFolder}/Archiver.csproj"
+      ],
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

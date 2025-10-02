@@ -1,0 +1,167 @@
+/* --------------------------------------------------------------------- *
+                        Proprietary Information of
+                            Crane Nuclear PFT Corp.
+
+                    Copyright ©2025, Crane Nuclear PFT Corp.
+                           All Rights Reserved
+
+            This document, and executable code generated from it
+            are the property of Crane Nuclear PFT Corp. and is delivered
+            on the express condition that it is not to be disclosed,
+            reproduced, in whole or in part or used in development
+            or manufacture without the written consent of Crane Nuclear 
+            PFT Corp. Crane Nuclear PFT Corp. grants no right to disclose or 
+            use any information contained within this document.
+* --------------------------------------------------------------------- */
+
+syntax = "proto3";
+
+package device;
+
+import "nanopb.proto";
+import "common.proto";
+
+// --- Enums ---
+
+// Top-level commands for the Firmware category.
+// See SRS-102.0, Rev 0, for more details.
+enum FirmwareCommandType {
+        FIRMWARE_COMMAND_UNSPECIFIED = 0;
+        GET_INFO = 1;            
+        UPDATE = 2;              
+}
+
+// Stages (operations) within the multi-step UPDATE command
+enum FirmwareUpdateOperation {
+        FIRMWARE_OP_UNSPECIFIED = 0;
+        FIRMWARE_OP_PREPARE = 1;   
+        FIRMWARE_OP_TRANSFER = 2;  
+        FIRMWARE_OP_VERIFY = 3;    
+        FIRMWARE_OP_APPLY = 4;     
+        FIRMWARE_OP_ABORT = 5;     
+}
+
+// Firmware image type (Microcontroller)
+enum FirmwareImageType {
+	FIRMWARE_IMAGE_TYPE_STM32 = 0;
+	FIRMWARE_IMAGE_TYPE_ESP32 = 1;
+}
+
+enum FirmwareVerificationResult {
+        FIRMWARE_VERIFICATION_OK = 0;
+        FIRMWARE_VERIFICATION_AUTH_FAILED = 1;
+        FIRMWARE_VERIFICATION_HEADER_INTEGRITY_FAILED = 2;
+        FIRMWARE_VERIFICATION_IMAGE_INTEGRITY_FAILED = 3;
+}
+
+// --- Message Types ---
+
+// Payload for GET_INFO command request (for active firmware image)
+message GetFirmwareInfoRequest {
+        // Empty, no payload needed
+}
+
+// Payload for GET_INFO command response
+message GetFirmwareInfoResponse {
+        ResponseBase response_base = 1;
+        string version = 2 [(nanopb).max_size = 16];
+        string build_date = 3 [(nanopb).max_size = 16];
+}
+
+// Payload for PREPARE operation request
+message FirmwarePreparePayload {
+        uint32 firmware_size_bytes = 1; 
+        uint32 block_size_preference = 2; // Server's preferred block size (ok if device rejects/overrides)
+}
+// Payload for TRANSFER operation request
+message FirmwareTransferPayload {
+        uint32 block_sequence_number = 1; 
+        bytes data = 2 [(nanopb).max_size = 1024];
+        uint32 crc32 = 3;
+}
+// Payload for VERIFY operation request (for inactive firmware image)
+message FirmwareVerifyPayload {
+        // Empty, no payload needed
+}
+// Payload for APPLY operation request
+message FirmwareApplyPayload {
+        // TODO - Is a delay needed? Would it be sufficient to only request an APPLY operation immediately?
+        uint32 reboot_delay_seconds = 1; // Delay before device reboots to apply (0 for immediate if supported)
+}
+// Payload for ABORT operation request
+message FirmwareAbortPayload {
+        string reason = 1 [(nanopb).max_size = 32]; // Optional reason for abort
+}
+
+// Payload for PREPARE operation response
+message FirmwarePrepareResponsePayload {
+        bool ready_to_receive = 1;
+        uint32 max_block_size = 2;
+        // TODO - Assuming this is per block, the estimated storage time will be on the order of milliseconds.
+        uint32 estimated_storage_time_seconds = 3;
+}
+// Payload for TRANSFER operation response
+message FirmwareTransferResponsePayload {
+        uint32 block_sequence_number = 1; // Which block this confirms
+        bool crc_ok = 2;
+}
+// Payload for VERIFY operation response
+message FirmwareVerifyResponsePayload {
+        FirmwareVerificationResult firmware_verification_result = 1;
+        string version = 2 [(nanopb).max_size = 16];
+}
+// Payload for APPLY operation response
+message FirmwareApplyResponsePayload {
+        bool application_scheduled = 1; // Is the device scheduled to apply/reboot?
+}
+// Payload for ABORT operation response
+message FirmwareAbortResponsePayload {
+        bool aborted = 1;
+}
+
+// Request wrapper for the UPDATE command type
+message UpdateFirmwareRequest {
+        FirmwareUpdateOperation operation = 1;
+        FirmwareImageType type = 2;
+        oneof stage_payload {
+                FirmwarePreparePayload prepare = 3;
+                FirmwareTransferPayload transfer = 4;
+                FirmwareVerifyPayload verify = 5;
+                FirmwareApplyPayload apply = 6;
+                FirmwareAbortPayload abort = 7;
+        }
+}
+
+// Response wrapper for the UPDATE command type
+message UpdateFirmwareResponse {
+        ResponseBase response_base = 1; // Overall status for the stage operation
+        FirmwareUpdateOperation operation = 2; // Echoes
+        FirmwareImageType type = 3; // Echoes
+        oneof stage_response_payload {
+                FirmwarePrepareResponsePayload prepare = 4;
+                FirmwareTransferResponsePayload transfer = 5;
+                FirmwareVerifyResponsePayload verify = 6;
+                FirmwareApplyResponsePayload apply = 7;
+                FirmwareAbortResponsePayload abort = 8;
+        }
+}
+
+// --- Firmware Wrappers (Used in message type Main) ---
+
+// Top-level request message for the Firmware category
+message FirmwareRequest {
+        FirmwareCommandType command_type = 1;
+        oneof command_payload {
+                GetFirmwareInfoRequest get_info = 2;
+                UpdateFirmwareRequest update = 3;
+        }
+}
+
+// Top-level response message for the Firmware category
+message FirmwareResponse {
+        FirmwareCommandType command_type = 1; // Echoes
+        oneof command_response_payload {
+                GetFirmwareInfoResponse get_info = 2;
+                UpdateFirmwareResponse update = 3;
+        }
+}

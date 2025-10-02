@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: device-proxy
+  namespace: dau
+spec:
+  selector:
+    app: device-proxy
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP

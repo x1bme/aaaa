@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: archiver-service-config
+  namespace: default
+data:
+  HTTP_PORT: "8080"
+  GRPC_PORT: "50051"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archiver-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: archiver-service
+  template:
+    metadata:
+      labels:
+        app: archiver-service
+    spec:
+      containers:
+      - name: archiver-service
+        image: localhost:5000/archiver-service:latest
+        env:
+        - name: HTTP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: archiver-service-config
+              key: HTTP_PORT
+        - name: GRPC_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: archiver-service-config
+              key: GRPC_PORT
+        - name: DB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials
+              key: connection-string
+        ports:
+        # PORT CONFIG #2: Container ports
+        - containerPort: 8080 
+          name: http
+        - containerPort: 50051 
+          name: grpc
+        # readinessProbe:
+        #   exec:
+        #     command: ["/bin/sh", "-c", "/bin/grpc_health_probe -addr=localhost:${GRPC_PORT}"]
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: archiver-service
+  namespace: default
+spec:
+  selector:
+    app: archiver-service
+  ports:
+  # PORT CONFIG #3: Service ports
+  - port: 8080  # Should match HTTP_PORT in ConfigMap
+    name: http
+    targetPort: 8080  # Should match HTTP_PORT in ConfigMap
+  - port: 50051  # Should match GRPC_PORT in ConfigMap
+    name: grpc
+    targetPort: 50051  # Should match GRPC_PORT in ConfigMap
+  type: ClusterIP
