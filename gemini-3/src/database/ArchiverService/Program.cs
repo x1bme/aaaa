@@ -117,4 +117,21 @@ app.MapGet("/api/tests/{testId}/download", async (ITestService testService, int 
 .WithDescription("Download the file data for a specific test")
 .WithOpenApi();
 
+app.MapGet("/api/database/backup", () => 
+{
+//  Assuming this service will always return the current version of the db and not
+//  track changes, replace the file below with the real db backup.
+//  THIS IS A STUB AND WILL NEED TO BE REPLACED
+    string sqlContent = "SQL stub file";
+    
+    return Results.File(
+        fileContents: System.Text.Encoding.UTF8.GetBytes(sqlContent),
+        contentType: "application/sql",
+        fileDownloadName: "stub.sql"
+    );
+})
+.WithName("GetDbBackup")
+.WithDescription("Return DB Backup to user")
+.WithOpenApi();
+
 app.Run();
