@@ -102,6 +102,8 @@
                     </div>
                 </div>
                 
+                <q-toggle v-model="form.isActive" label="Active" class="q-mb-md" />
+                
                 <div class="row justify-end">
                     <q-btn label="Delete Valve" color="negative" flat class="q-mr-sm" @click="showDeleteConfirm = true" />
                     <q-btn label="Cancel" color="negative" flat class="q-mr-sm" v-close-popup />
@@ -152,7 +154,8 @@ export default defineComponent({
             }
         });
         
-        // Get available DAUs (not attached to any valve, OR attached to THIS valve)
+        // Get available DAUs for ATV (not attached to any valve, OR attached to THIS valve)
+        // Exclude currently selected Remote
         const availableDausForAtv = computed(() => {
             const daus = dauStore.daus
                 .filter(dau => 
@@ -176,6 +179,8 @@ export default defineComponent({
             return daus;
         });
         
+        // Get available DAUs for Remote (not attached to any valve, OR attached to THIS valve)
+        // Exclude currently selected ATV
         const availableDausForRemote = computed(() => {
             const daus = dauStore.daus
                 .filter(dau => 
@@ -199,8 +204,9 @@ export default defineComponent({
             return daus;
         });
 
+        // Show the currently selected or attached ATV DAU
         const displayedAtvDau = computed(() => {
-            if (form.value.atvId === 0)
+            if (form.value.atvId === 0) {
                 return null;
             }
             if (form.value.atvId && form.value.atvId !== props.valve.atv?.id) {
@@ -209,6 +215,7 @@ export default defineComponent({
             return props.valve.atv;
         });
 
+        // Show the currently selected or attached Remote DAU
         const displayedRemoteDau = computed(() => {
             if (form.value.remoteId === 0) {
                 return null;
@@ -221,12 +228,14 @@ export default defineComponent({
 
         const isLoading = computed(() => dauStore.isLoading || valveStore.isLoading);
         
+        // Watch for changes to the valve prop and update form
         watch(() => props.valve, (newValve) => {
             if (newValve) {
                 form.value = {
                     id: newValve.id,
                     name: newValve.name,
                     location: newValve.location || '',
+                    installationDate: newValve.installationDate,
                     isActive: newValve.isActive,
                     atvId: newValve.atv?.id || null,
                     remoteId: newValve.remote?.id || null
@@ -255,6 +264,7 @@ export default defineComponent({
             return statusMapping[enumVal] || 'Unknown';
         }
         
+        // Detach a DAU from the valve
         async function detachDau(dauType) {
             if (dauType === 'atv') {
                 form.value.atvId = 0;
@@ -263,6 +273,7 @@ export default defineComponent({
             }
         }
         
+        // Submit the form to update the valve
         async function submitForm() {
             try {
                 // Validate that ATV and Remote are not the same
@@ -276,20 +287,21 @@ export default defineComponent({
                 const updatePayload = {
                     name: form.value.name,
                     location: form.value.location,
-                    installationDate: props.valve.installationDate,
+                    installationDate: form.value.installationDate,
                     isActive: form.value.isActive,
-                    atvId: form.value.atvId,
-                    remoteId: form.value.remoteId,
+                    atvId: form.value.atvId === 0 ? null : form.value.atvId,
+                    remoteId: form.value.remoteId === 0 ? null : form.value.remoteId,
                 };
                 
                 await valveStore.updateValve({
                     id: form.value.id,
                     valve: updatePayload
                 });
+                
                 emit('saved');
             } catch (error) {
                 console.error('Error updating valve:', error);
-                alert('Failed to update valve. Please check that the selected DAUs are available.');
+                alert(`Failed to update valve: ${error.message || 'Please check that the selected DAUs are available.'}`);
             }
         }
 
@@ -314,3 +326,10 @@ export default defineComponent({
     }
 });
 </script>
+
+<style scoped>
+/* Optional: Add some spacing for better visual separation */
+.q-item {
+    border-radius: 4px;
+}
+</style>
