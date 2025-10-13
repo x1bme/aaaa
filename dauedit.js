@@ -245,42 +245,46 @@ export default defineComponent({
             });
         }
 
-		async function submitForm() {
-			try {
-				// Only send user-editable fields
-				// Backend will fetch heartbeat/calibration/status from DAU Server on GET
-				const updatedDau = {
-					dauId: form.value.dauId,
-					dauTag: form.value.dauTag,
-					location: form.value.location,
-					dauIPAddress: form.value.dauIPAddress,
-					registered: form.value.registered,
-					valveId: form.value.valveId
-				};
-				
-				await dauStore.updateDau(form.value.id, updatedDau);
-				emit('saved');
-			} catch (error) {
-				console.error('Error updating DAU:', error);
-			}
-		}
-		async function detachFromValve() {
-			try {
-				const updatedDau = {
-					dauId: form.value.dauId,
-					dauTag: form.value.dauTag,
-					location: form.value.location,
-					dauIPAddress: form.value.dauIPAddress,
-					registered: form.value.registered,
-					valveId: null
-				};
-				
-				await dauStore.updateDau(form.value.id, updatedDau);
-				emit('saved');
-			} catch (error) {
-				console.error('Error detaching DAU from valve:', error);
-			}
-		}
+        async function submitForm() {
+            try {
+                // Only send user-editable fields
+                // Backend will fetch heartbeat/calibration/status from DAU Server on GET
+                const updatedDau = {
+                    id: form.value.id,
+                    dauId: form.value.dauId,
+                    dauTag: form.value.dauTag,
+                    location: form.value.location,
+                    dauIPAddress: form.value.dauIPAddress,
+                    registered: form.value.registered,
+                    valveId: form.value.valveId
+                };
+                
+                await dauStore.updateDau(form.value.id, updatedDau);
+                emit('saved');
+            } catch (error) {
+                console.error('Error updating DAU:', error);
+            }
+        }
+
+        async function detachFromValve() {
+            try {
+                const updatedDau = {
+                    id: form.value.id,
+                    dauId: form.value.dauId,
+                    dauTag: form.value.dauTag,
+                    location: form.value.location,
+                    dauIPAddress: form.value.dauIPAddress,
+                    registered: form.value.registered,
+                    valveId: null
+                };
+                
+                await dauStore.updateDau(form.value.id, updatedDau);
+                emit('saved');
+            } catch (error) {
+                console.error('Error detaching DAU from valve:', error);
+            }
+        }
+
         return {
             form,
             formattedLastHeartbeat,
