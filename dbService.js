@@ -13,6 +13,13 @@ export default {
         });
     },
     
+    // Get all tests for a valve
+    getTestsByValve(valveId) {
+        return api.get(`/api/database/tests`, {
+            params: { valveId }
+        });
+    },
+    
     // Get test metadata by ID
     getTest(testId) {
         return api.get(`/api/database/tests/${testId}`);
