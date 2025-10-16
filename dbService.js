@@ -6,13 +6,6 @@ export default {
         return api.get('/api/database/status');
     },
     
-    // Get valve archive data (download latest test for valve)
-    getValveArchive(valveId) {
-        return api.get(`/api/database/archives/${valveId}`, {
-            responseType: 'blob'
-        });
-    },
-    
     // Get all tests for a valve
     getTestsByValve(valveId) {
         return api.get(`/api/database/tests`, {

@@ -2,19 +2,35 @@
     <div>
         <q-btn
             color="info"
-            icon="history"
-            label="Test History"
+            icon="storage"
+            label="Database Actions"
             @click="openDialog"
             size="sm"
         >
-            <q-tooltip>View and download test history</q-tooltip>
+            <q-tooltip>View test history and database operations</q-tooltip>
         </q-btn>
         
         <q-dialog v-model="showDialog" @show="loadTests">
-            <q-card style="min-width: 500px; max-width: 600px">
+            <q-card style="min-width: 600px; max-width: 700px">
                 <q-card-section>
-                    <div class="text-h6">Test History - Valve {{ valveId }}</div>
+                    <div class="row items-center">
+                        <div class="text-h6">Database Actions - Valve {{ valveId }}</div>
+                        <q-space />
+                        <q-btn
+                            flat
+                            round
+                            dense
+                            icon="backup"
+                            color="primary"
+                            @click="downloadDatabaseBackup"
+                            :loading="backupDownloading"
+                        >
+                            <q-tooltip>Download Database Backup</q-tooltip>
+                        </q-btn>
+                    </div>
                 </q-card-section>
+                
+                <q-separator />
                 
                 <q-card-section v-if="loading">
                     <div class="row justify-center q-pa-md">
@@ -34,6 +50,10 @@
                 
                 <q-card-section v-else>
                     <!-- Test Dropdown -->
+                    <div class="text-subtitle2 q-mb-sm">
+                        <q-icon name="history" size="xs" class="q-mr-xs" />
+                        Test History
+                    </div>
                     <q-select
                         v-model="selectedTest"
                         :options="tests"
@@ -105,12 +125,14 @@
                                 icon="download"
                                 label="Download Test"
                                 @click="downloadTest"
-                                :disable="!selectedTestData.hasBlobData || downloading"
-                                :loading="downloading"
+                                :disable="!selectedTestData.hasBlobData || testDownloading"
+                                :loading="testDownloading"
                             />
                         </q-card-actions>
                     </q-card>
                 </q-card-section>
+                
+                <q-separator />
                 
                 <q-card-actions align="right">
                     <q-btn flat label="Close" color="primary" v-close-popup />
@@ -126,7 +148,7 @@ import dbService from 'src/services/dbService';
 import { useQuasar, date as qDate } from 'quasar';
 
 export default {
-    name: 'TestHistoryDialog',
+    name: 'DatabaseActionsDialog',
     props: {
         valveId: {
             type: Number,
@@ -137,7 +159,8 @@ export default {
         const $q = useQuasar();
         const showDialog = ref(false);
         const loading = ref(false);
-        const downloading = ref(false);
+        const testDownloading = ref(false);
+        const backupDownloading = ref(false);
         const tests = ref([]);
         const selectedTest = ref(null);
         
@@ -192,7 +215,7 @@ export default {
             if (!selectedTestData.value) return;
             
             try {
-                downloading.value = true;
+                testDownloading.value = true;
                 
                 const response = await dbService.downloadTest(selectedTestData.value.testId);
                 
@@ -220,21 +243,57 @@ export default {
                     icon: 'error'
                 });
             } finally {
-                downloading.value = false;
+                testDownloading.value = false;
+            }
+        }
+        
+        async function downloadDatabaseBackup() {
+            try {
+                backupDownloading.value = true;
+                
+                const response = await dbService.getDatabaseBackup();
+                
+                // Create blob and download
+                const blob = new Blob([response.data], { type: 'application/sql' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `database_backup_${new Date().toISOString().split('T')[0]}.sql`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                $q.notify({
+                    type: 'positive',
+                    message: 'Database backup downloaded successfully',
+                    icon: 'backup'
+                });
+            } catch (error) {
+                console.error('Error downloading database backup:', error);
+                $q.notify({
+                    type: 'negative',
+                    message: 'Failed to download database backup',
+                    icon: 'error'
+                });
+            } finally {
+                backupDownloading.value = false;
             }
         }
         
         return {
             showDialog,
             loading,
-            downloading,
+            testDownloading,
+            backupDownloading,
             tests,
             selectedTest,
             selectedTestData,
             openDialog,
             formatDate,
             loadTests,
-            downloadTest
+            downloadTest,
+            downloadDatabaseBackup
         };
     }
 };

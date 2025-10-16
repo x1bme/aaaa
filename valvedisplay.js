@@ -2,18 +2,15 @@
     <div class="valve-display q-pa-md">
         <div class="row justify-between items-center q-mb-md">
             <h4 class="q-ma-none">Valve Management</h4>
-            <div class="row q-gutter-sm">
-                <database-backup />
-                <q-btn
-                    color="primary"
-                    icon="add"
-                    label="New Valve"
-                    @click="openCreateForm"
-                />
-            </div>
+            <q-btn
+                color="primary"
+                icon="add"
+                label="New Valve"
+                @click="openCreateForm"
+            />
         </div>
         
-        <!-- ... rest of the template ... -->
+        <!-- ... existing content ... -->
         
         <div v-else class="row q-col-gutter-md">
             <div v-for="valve in allValves"
@@ -21,29 +18,22 @@
                 class="col-xs-12 col-sm-6 col-md-4"
             >
                 <q-card class="valve-card">
-                    <!-- ... existing card content ... -->
+                    <!-- ... existing card sections ... -->
                     
                     <q-separator />
                     
-                    <!-- Database Actions Section -->
+                    <!-- Combined Database Actions Section -->
                     <q-card-section>
-                        <div class="text-subtitle2 q-mb-sm">Database Actions</div>
                         <div class="row q-gutter-sm">
-                            <download-valve-archive :valve-id="valve.id" />
-                            <test-history-dialog :valve-id="valve.id" />
+                            <data-collection :valve-id="valve.id" />
+                            <database-actions-dialog :valve-id="valve.id" />
                         </div>
-                    </q-card-section>
-                    
-                    <q-separator />
-                    
-                    <q-card-section>
-                        <data-collection :valve-id="valve.id" />
                     </q-card-section>
                 </q-card>
             </div>
         </div>
         
-        <!-- ... rest of the template ... -->
+        <!-- ... rest of template ... -->
     </div>
 </template>
 
@@ -55,9 +45,7 @@ import ValveEditForm from 'src/components/ValveEditForm.vue';
 import CreateValveForm from 'src/components/CreateValveForm.vue'; 
 import ValveLogs from 'src/components/ValveLogs.vue';
 import DataCollection from 'src/components/DataCollection.vue';
-import DatabaseBackup from 'src/components/DatabaseBackup.vue';
-import DownloadValveArchive from 'src/components/DownloadValveArchive.vue';
-import TestHistoryDialog from 'src/components/TestHistoryDialog.vue';
+import DatabaseActionsDialog from 'src/components/DatabaseActionsDialog.vue';
 
 export default defineComponent({
     name: 'ValveDisplay',
@@ -66,10 +54,8 @@ export default defineComponent({
         'valve-create-form': CreateValveForm,
         'valve-logs-dialog': ValveLogs,
         'data-collection': DataCollection,
-        'database-backup': DatabaseBackup,
-        'download-valve-archive': DownloadValveArchive,
-        'test-history-dialog': TestHistoryDialog
+        'database-actions-dialog': DatabaseActionsDialog
     },
-    // ... rest of the component logic ...
+    // ... rest of component setup ...
 });
 </script>
