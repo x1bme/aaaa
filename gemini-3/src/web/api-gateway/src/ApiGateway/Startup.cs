@@ -166,6 +166,7 @@ namespace ApiGateway
             services.AddHostedService<TestData>();
             services.AddHostedService<FrontendData>();
             services.AddHostedService<SwaggerData>();
+            services.AddHostedService<PtpServiceData>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, RoleManager<IdentityRole> roleManager, UserManager<User> userManager)

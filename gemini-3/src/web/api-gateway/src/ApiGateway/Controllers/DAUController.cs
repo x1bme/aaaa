@@ -148,5 +148,47 @@ namespace ApiGateway.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        
+        private async Task NotifyPtpServiceAsync()
+        {
+            try
+            {
+                var ptpServiceUrl = _configuration["PtpService:Url"];
+                if (string.IsNullOrEmpty(ptpServiceUrl))
+                {
+                    _logger.LogWarning("PTP Service URL not configured");
+                    return;
+                }
+
+                // Get all registered DAU IP addresses
+                var daus = await _dauRepository.GetAllDausAsync();
+                var ipAddresses = daus
+                    .Where(d => d.Registered)
+                    .Select(d => d.DauIPAddress)
+                    .ToList();
+
+                var client = _httpClientFactory.CreateClient();
+                
+                // Webhook doesn't need auth since PTP service trusts API Gateway
+                // But if you want to add auth, you could use the same client credentials
+                
+                var response = await client.PostAsJsonAsync($"{ptpServiceUrl}/api/ptp/update-daus", ipAddresses);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Successfully notified PTP service of DAU changes");
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to notify PTP service. Status: {StatusCode}", response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error notifying PTP service");
+                // Don't throw - this is a non-critical operation
+            }
+        }
     }
 }
